@@ -15,6 +15,6 @@ Under Unix, you could employ the command line like follows:
 	cmake ..
 	make
 
-After this approach, you find the compiled applications under `cg1/build/bin`.
+After this, you find the compiled applications under `cg1/build/bin`.
 	
 On Windows / Visual Studio, you can use the CMake GUI. After cloning the repository, open the CMake GUI and set *Where is the source code* to the cloned directory. Set *Where to build the binaries* to a new subfolder `build`. Click *Configure* and select the desired Visual Studio Version. Then, click *Configure*  and *Open Project* to generate and open the project in Visual studio. Finally, choose the desired startup project (Exercise1-4) and compile and run.
