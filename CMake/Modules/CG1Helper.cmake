@@ -75,7 +75,7 @@ FUNCTION(SetupBuildEnvironment)
 	endif()
 
 	if(CMAKE_COMPILER_IS_GNUCXX OR CLANG) 
-	  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated-declarations -Wno-unused-result") 
+      set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated-declarations -Wno-unused-result -Wno-misleading-indentation")
 	endif() 
 
 	set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} PARENT_SCOPE) 

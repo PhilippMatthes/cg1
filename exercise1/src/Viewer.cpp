@@ -78,6 +78,7 @@ void Viewer::CreateVertexBuffers()
 	// "in_position". First, get the location of this attribute in 
 	// the shader program
 	GLuint vid = glGetAttribLocation(program_id, "in_position");
+	
 	// Enable this vertex attribute array
 	glEnableVertexAttribArray(vid);
 	// Set the format of the data to match the type of "in_position"

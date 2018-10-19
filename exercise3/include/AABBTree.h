@@ -364,7 +364,7 @@ public:
 			if(k_best.size() < k )
 			{
 				k_best.push(ResultEntry(dist,*pit));
-				return;
+				continue;
 			}
 			if(k_best.top().SqrDistance > dist)
 			{
