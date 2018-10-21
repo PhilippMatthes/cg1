@@ -121,21 +121,66 @@ void CheckShaderCompileStatus(GLuint shaderId, std::string name)
 // Read, Compile and link the shader codes to a shader program
 void Viewer::CreateShaders()
 {
-	std::string vs((char*)shader_vert, shader_vert_size);
-	const char *vertex_content = vs.c_str();
-
-	std::string fs((char*)shader_frag, shader_frag_size);
-	const char *fragment_content = fs.c_str();
-
 	/*** Begin of task 1.2.1 ***
 	Use the appropriate OpenGL commands to create a shader object for
-	the vertex shader, set the source code and let it compile. Store the
-	ID of this shader object in the variable "vertex_shader_id". Repeat
-	for the fragment shader. Store the ID in the variable "fragment_shader_id.
+    the vertex shader, set the source code and let it compile. Store the
+    ID of this shader object in the variable "vertex_shader_id". Repeat
+    for the fragment shader. Store the ID in the variable "fragment_shader_id.
 	Finally, create a shader program with its handle stored in "program_id",
 	attach both shader objects and link them. For error checking, you can
 	use the method "CheckShaderCompileStatus()" after the call to glCompileShader().
 	*/
+
+	/*
+	 *  Use the appropriate OpenGL commands to create a shader object for
+	    the vertex shader, set the source code and let it compile. Store the
+	    ID of this shader object in the variable "vertex_shader_id". Repeat
+	    for the fragment shader. Store the ID in the variable "fragment_shader_id.
+	 */
+
+	std::cout << "Creating shaders..." << "\n";
+	vertex_shader_id = glCreateShader(GL_VERTEX_SHADER);
+	fragment_shader_id = glCreateShader(GL_FRAGMENT_SHADER);
+
+	/*
+	 *  Finally, create a shader program with its handle stored in "program_id",
+	    attach both shader objects and link them. For error checking, you can
+	    use the method "CheckShaderCompileStatus()" after the call to glCompileShader().
+	 */
+    std::cout << "Creating program..." << "\n";
+	program_id = glCreateProgram();
+
+    std::cout << "Creating shader sources..." << "\n";
+    std::string vs((char*)shader_vert, shader_vert_size);
+    const char *vertex_content = vs.c_str();
+
+    std::string fs((char*)shader_frag, shader_frag_size);
+    const char *fragment_content = fs.c_str();
+
+    std::cout << "Linking shader sources..." << "\n";
+    glShaderSource(vertex_shader_id, 1, &vertex_content, 0);
+    glShaderSource(fragment_shader_id, 1, &fragment_content, 0);
+
+    std::cout << "Compiling shaders..." << "\n";
+    glCompileShader(vertex_shader_id);
+    glCompileShader(fragment_shader_id);
+
+    std::cout << "Attaching shaders to program..." << "\n";
+	glAttachShader(program_id, vertex_shader_id);
+	glAttachShader(program_id, fragment_shader_id);
+
+	std::cout << "Linking program..." << "\n";
+	glLinkProgram(program_id);
+
+	std::cout << "Deatching shaders..." << "\n";
+	glDetachShader(program_id, vertex_shader_id);
+	glDetachShader(program_id, fragment_shader_id);
+
+    CheckShaderCompileStatus(vertex_shader_id, "Vertex Shader");
+    CheckShaderCompileStatus(fragment_shader_id, "Fragment Shader");
+
+
+
 	/*** End of task 1.2.1 ***/
 }
 
