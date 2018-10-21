@@ -12,7 +12,6 @@ out vec4 color;
 
 void main(void)
 {
-    color = fragment_color * 0.5 + vec4(0.5);
 
     /*** Begin of tasks ***
     - 1.2.5
@@ -24,7 +23,7 @@ void main(void)
     vec2 c = vec2(0.5, 0.5);
 
     // Zoom factor
-    int m = 1;
+    float m = 1;
 
     vec2 p = untransformed_position.xy;
 
@@ -35,7 +34,7 @@ void main(void)
     for (i; i < i_max; i++) {
         float x = (z.x * z.x - z.y * z.y) + c.x;
         float y = (z.x * z.y + z.x * z.y) + c.y;
-        if ((x * x + y * y) > 4.0) break;
+        if ((x * x + y * y) > 10.0) break;
         z.x = x;
         z.y = y;
     }
