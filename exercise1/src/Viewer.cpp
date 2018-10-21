@@ -1,4 +1,4 @@
-﻿// This source code is property of the Computer Graphics and Visualization 
+// This source code is property of the Computer Graphics and Visualization 
 // chair of the TU Dresden. Do not distribute! 
 // Copyright (C) CGV TU Dresden - All Rights Reserved
 
@@ -64,24 +64,24 @@ void Viewer::CreateVertexBuffers()
 
 	GLfloat positions[] = {
             // Front triangle
-            0, 1, 0, 1,
-            -1, -1, 0, 1,
-            1, -1, 0, 1,
+            -1, -1, -1, 1,
+            1, -1, 1, 1,
+            1, 1, -1, 1,
 
             // Right side triangle
-            1, -1, 0, 1,
-            0, 1, 0, 1,
-            0,  -1, -1, 1,
+            1, -1, 1, 1,
+            -1, 1, 1, 1,
+            1, 1, -1, 1,
 
             // Left side triangle
-            -1, -1, 0, 1,
-            0, 1, 0, 1,
-            0, -1, -1, 1,
+            -1, -1, -1, 1,
+            1, 1, -1, 1,
+            -1, 1, 1, 1,
 
             // Bottom triangle
-            -1, -1, 0, 1,
-            1, -1, 0, 1,
-            0, -1, -1, 1,
+            1, -1, 1, 1,
+            -1, -1, -1, 1,
+            -1, 1, 1, 1,
     };
 
 	GLfloat colors[] = {
