@@ -53,16 +53,51 @@ void Viewer::CreateVertexBuffers()
 	Fill the positions-array and your color array with 12 rows, each
 	containing 4 entries, to define a tetrahedron. */
 
-	// Define 3 vertices for one face
+	/*
+	 *
+	 *    H---G		Tetrahedron: AFC, FHC, ACH, FAH
+	 *   /|  /|		A = -1, -1, -1, 1,	E = -1, -1, 1, 1,
+	 * 	D-E-C F		B = 1, -1 , -1, 1,	F = 1, -1, 1, 1,
+	 *  |   |/		C = 1, 1, -1, 1,	G = 1, 1, 1, 1,
+	 *  A---B		D = -1, 1, -1, 1,	H = -1, 1, 1, 1,
+	 */
+
 	GLfloat positions[] = {
-		0, 1, 0, 1,
-		-1, -1, 0, 1,
-		1, -1, 0, 1
+            // Front triangle
+            0, 1, 0, 1,
+            -1, -1, 0, 1,
+            1, -1, 0, 1,
+
+            // Right side triangle
+            1, -1, 0, 1,
+            0, 1, 0, 1,
+            0,  -1, -1, 1,
+
+            // Left side triangle
+            -1, -1, 0, 1,
+            0, 1, 0, 1,
+            0, -1, -1, 1,
+
+            // Bottom triangle
+            -1, -1, 0, 1,
+            1, -1, 0, 1,
+            0, -1, -1, 1,
+    };
+
+	GLfloat colors[] = {
+            1, 0, 0, 1,
+            1, 0, 0, 1,
+            1, 0, 0, 1,
+            0, 1, 0, 1,
+            0, 1, 0, 1,
+            0, 1, 0, 1,
+            0, 0, 1, 1,
+            0, 0, 1, 1,
+            0, 0, 1, 1,
+            1, 1, 0, 1,
+            1, 1, 0, 1,
+            1, 1, 0, 1,
 	};
-
-	
-
-	
 
 	// Generate the vertex array 
 	glGenVertexArrays(1, &vertex_array_id);
@@ -90,13 +125,6 @@ void Viewer::CreateVertexBuffers()
 	id into the variable "color_buffer_id" and bind the color buffer to the
     shader variable "in_color".
     ***/
-
-    std::cout << "Creating color array..." << "\n";
-    GLfloat colors[] = {
-            1, 0, 0, 1,
-            0, 1, 0, 1,
-            0, 0, 1, 1
-    };
 
 	std::cout << "Generating color buffer..." << "\n";
 	glGenBuffers(1, &color_buffer_id);
@@ -193,7 +221,7 @@ void Viewer::CreateShaders()
 	std::cout << "Linking program..." << "\n";
 	glLinkProgram(program_id);
 
-	std::cout << "Deatching shaders..." << "\n";
+	std::cout << "Detaching shaders..." << "\n";
 	glDetachShader(program_id, vertex_shader_id);
 	glDetachShader(program_id, fragment_shader_id);
 
@@ -234,10 +262,16 @@ void Viewer::drawContents()
 	then set them with the command glUniformMatrix4fv. 
 	*/
 
+	GLint modelview_matrix_id = glGetUniformLocation(program_id, "modelview_matrix");
+	GLint projection_matrix_id = glGetUniformLocation(program_id, "projection_matrix");
+
+	glUniformMatrix4fv(modelview_matrix_id, 1, GL_TRUE, modelViewMatrix.data());
+	glUniformMatrix4fv(projection_matrix_id, 1, GL_TRUE, projectionMatrix.data());
+
 	// Bind the vertex array 
 	glBindVertexArray(vertex_array_id);
 	// Draw the bound vertex array. Start at element 0 and draw 3 vertices
-	glDrawArrays(GL_TRIANGLES, 0, 3);
+	glDrawArrays(GL_TRIANGLES, 0, 12);
 
 	/*** End of task 1.2.4 (b) ***/
 	
