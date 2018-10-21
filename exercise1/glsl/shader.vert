@@ -4,6 +4,7 @@
 #version 130
 
 in vec4 in_position;
+in vec4 in_color;
 
 out vec4 fragment_color;
 
@@ -13,11 +14,12 @@ out vec4 fragment_color;
 void main(void)
 {
 	gl_Position = in_position;
-	fragment_color = in_position;
 
 	/* - 1.2.2 (b)
 	 * Declare a new "in" variable with the name "in_color". Instead of setting
 	 * "fragment_color" to the position, set it to "in_color. */
+
+    fragment_color = in_color;
 
 	/* - 1.2.4 (a)
 	 * Declare two new "uniform" variables with the type "mat4" (above the main function)

@@ -84,12 +84,33 @@ void Viewer::CreateVertexBuffers()
 	// Set the format of the data to match the type of "in_position"
 	glVertexAttribPointer(vid, 4, GL_FLOAT, GL_FALSE, 0, 0);
 
-	/*** Begin of task 1.2.2 (a) ***
+	/*** Begin of task 1.2.2 (a)
 	Create another buffer that will store color information. This works nearly
 	similar to the code above that creates the position buffer. Store the buffer
 	id into the variable "color_buffer_id" and bind the color buffer to the
-	shader variable "in_color".
+    shader variable "in_color".
+    ***/
 
+    std::cout << "Creating color array..." << "\n";
+    GLfloat colors[] = {
+            1, 0, 0, 1,
+            0, 1, 0, 1,
+            0, 0, 1, 1
+    };
+
+	std::cout << "Generating color buffer..." << "\n";
+	glGenBuffers(1, &color_buffer_id);
+	glBindBuffer(GL_ARRAY_BUFFER, color_buffer_id);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(colors), colors, GL_STATIC_DRAW);
+
+    std::cout << "Getting location of in_color in shader program..." << "\n";
+	GLuint cid = glGetAttribLocation(program_id, "in_color");
+
+	std::cout << "Enabling vertex attribute array..." << "\n";
+	glEnableVertexAttribArray(cid);
+
+    std::cout << "Setting data format to match the type of in_color..." << "\n";
+	glVertexAttribPointer(cid, 4, GL_FLOAT, GL_FALSE, 0, 0);
 
 	/*** End of task 1.2.2 (a) ***/
 	
@@ -178,8 +199,6 @@ void Viewer::CreateShaders()
 
     CheckShaderCompileStatus(vertex_shader_id, "Vertex Shader");
     CheckShaderCompileStatus(fragment_shader_id, "Fragment Shader");
-
-
 
 	/*** End of task 1.2.1 ***/
 }
