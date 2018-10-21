@@ -11,6 +11,7 @@ in vec4 in_position;
 in vec4 in_color;
 
 out vec4 fragment_color;
+out vec4 untransformed_position;
 
 /* - 1.2.4 (a)
  * Declare two new "uniform" variables with the type "mat4" (above the main function)
@@ -24,8 +25,6 @@ uniform mat4 projection_matrix;
 void main(void)
 {
 
-    fragment_color = in_color;
-
     vec4 transformed_position = in_position * modelview_matrix * projection_matrix;
 
     gl_Position = transformed_position;
@@ -34,4 +33,8 @@ void main(void)
 	 * The algorithm to calculate the julia fractal needs a position as input.
 	 * Declare another "out" variable and set it to the untransformed input
 	 * position. */
+
+    untransformed_position = in_position;
+
+
 }
