@@ -29,6 +29,8 @@ void main(void)
 
     gl_Position = transformed_position;
 
+    fragment_color = in_color;
+
 	/* - 1.2.5
 	 * The algorithm to calculate the julia fractal needs a position as input.
 	 * Declare another "out" variable and set it to the untransformed input

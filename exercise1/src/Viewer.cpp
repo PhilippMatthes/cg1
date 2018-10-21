@@ -64,39 +64,47 @@ void Viewer::CreateVertexBuffers()
 
 	GLfloat positions[] = {
             // Front triangle
-            -1, -1, -1, 1,
             1, -1, 1, 1,
+            -1, -1, -1, 1,
             1, 1, -1, 1,
 
             // Right side triangle
-            1, -1, 1, 1,
-            -1, 1, 1, 1,
             1, 1, -1, 1,
+            -1, 1, 1, 1,
+            1, -1, 1, 1,
+
 
             // Left side triangle
-            -1, -1, -1, 1,
-            1, 1, -1, 1,
             -1, 1, 1, 1,
+            1, 1, -1, 1,
+            -1, -1, -1, 1,
 
             // Bottom triangle
-            1, -1, 1, 1,
-            -1, -1, -1, 1,
             -1, 1, 1, 1,
+            -1, -1, -1, 1,
+            1, -1, 1, 1,
     };
 
 	GLfloat colors[] = {
-            1, 0, 0, 1,
-            1, 0, 0, 1,
-            1, 0, 0, 1,
-            0, 1, 0, 1,
-            0, 1, 0, 1,
-            0, 1, 0, 1,
+            // Front triangle
             0, 0, 1, 1,
-            0, 0, 1, 1,
+            0, 1, 0, 1,
+            1, 0, 0, 1,
+
+            // Right side triangle
+            0, 1, 1, 1,
+            1, 0, 1, 1,
+            1, 1, 0, 1,
+
+            // Left side triangle
+            0, 1, 0, 1,
+            1, 1, 1, 1,
+            1, 0, 0, 1,
+
+            // Bottom triangle
             0, 0, 1, 1,
             1, 1, 0, 1,
-            1, 1, 0, 1,
-            1, 1, 0, 1,
+            1, 1, 1, 1,
 	};
 
 	// Generate the vertex array 

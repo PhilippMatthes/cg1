@@ -8,11 +8,10 @@ in vec4 untransformed_position;
 
 out vec4 color;
 
-
-
 void main(void)
 {
 
+    color = fragment_color * 0.5 + vec4(0.5);
     /*** Begin of tasks ***
     - 1.2.5
     Implement the pseudo-code for calculating the julia fractal at a point.
