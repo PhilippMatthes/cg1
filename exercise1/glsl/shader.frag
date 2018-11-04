@@ -28,7 +28,7 @@ void main(void)
 
     vec2 z = p * m;
 
-    int i;
+    int i = 0;
     int i_max = 200;
     for (i; i < i_max; i++) {
         float x = (z.x * z.x - z.y * z.y) + c.x;
