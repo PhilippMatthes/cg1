@@ -242,7 +242,7 @@ void Viewer::CreateShaders()
 void Viewer::drawContents()
 {
 	Eigen::Vector2f juliaC(sldJuliaCX->value(), sldJuliaCY->value());
-	float juliaZoom = sldJuliaZoom->value();
+	GLfloat juliaZoom = sldJuliaZoom->value();
 
 	//Get the transform matrices
 	camera().ComputeCameraMatrices(modelViewMatrix, projectionMatrix);
@@ -270,9 +270,13 @@ void Viewer::drawContents()
 	then set them with the command glUniformMatrix4fv. 
 	*/
 
+	GLint seed_vector_id = glGetUniformLocation(program_id, "seed_vector");
+	GLint julia_zoom_id = glGetUniformLocation(program_id, "julia_zoom");
 	GLint modelview_matrix_id = glGetUniformLocation(program_id, "modelview_matrix");
 	GLint projection_matrix_id = glGetUniformLocation(program_id, "projection_matrix");
 
+	glUniform1f(julia_zoom_id, juliaZoom);
+	glUniform2f(seed_vector_id, sldJuliaCX->value(), sldJuliaCY->value());
 	glUniformMatrix4fv(modelview_matrix_id, 1, GL_TRUE, modelViewMatrix.data());
 	glUniformMatrix4fv(projection_matrix_id, 1, GL_TRUE, projectionMatrix.data());
 

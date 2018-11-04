@@ -8,6 +8,9 @@ in vec4 untransformed_position;
 
 out vec4 color;
 
+uniform float julia_zoom;
+uniform vec2 seed_vector;
+
 void main(void)
 {
 
@@ -19,10 +22,10 @@ void main(void)
     position and just use the X- and Y- value. */
 
     // Seed vector
-    vec2 c = vec2(0.5, 0.5);
+    vec2 c = seed_vector;
 
     // Zoom factor
-    float m = 1;
+    float m = julia_zoom;
 
     vec2 p = untransformed_position.xy;
 
@@ -33,7 +36,7 @@ void main(void)
     for (i; i < i_max; i++) {
         float x = (z.x * z.x - z.y * z.y) + c.x;
         float y = (z.x * z.y + z.x * z.y) + c.y;
-        if ((x * x + y * y) > 10.0) break;
+        if ((x * x + y * y) > 4.0) break;
         z.x = x;
         z.y = y;
     }
