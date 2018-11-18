@@ -5,31 +5,38 @@
 #pragma once
 
 #include <gui/AbstractViewer.h>
-#include <util/OpenMeshUtils.h>
+#include <gui/GLShader.h>
+#include <gui/GLBuffer.h>
+#include <gui/GLVertexArray.h>
 
 class Viewer : public nse::gui::AbstractViewer
 {
 public:
 	Viewer();
 
-	void drawContents();
+	void LoadShaders();
+	void CreateGeometry();
 
-private:
-	void SetupGUI();
-	void MeshUpdated(bool initNewMesh = false);
+	void drawContents();	
+	bool resizeEvent(const Eigen::Vector2i&);
 
-	void ColorMeshFromIds();
+private:	
 
-	bool hasColors = false;
+	void RenderSky();
 
-	nanogui::ComboBox* shadingBtn;
-	unsigned int smoothingIterations;
-	nanogui::Slider* sldSmoothingStrength;
-	unsigned int stripificationTrials;
+	Eigen::Matrix4f view, proj;
 
-	HEMesh polymesh;
-	MeshRenderer renderer;
+	nse::gui::GLShader skyShader;
+	nse::gui::GLVertexArray emptyVAO;
 
-	OpenMesh::FPropHandleT<int> faceIdProperty;
-	OpenMesh::FPropHandleT<Eigen::Vector4f> faceColorProperty;
+	nse::gui::GLShader terrainShader;
+	nse::gui::GLVertexArray terrainVAO;
+	nse::gui::GLBuffer terrainPositions;
+	nse::gui::GLBuffer terrainIndices;
+
+	GLuint grassTexture, rockTexture, roadColorTexture, roadNormalMap, roadSpecularMap, alphaMap;
+
+	nse::gui::GLBuffer offsetBuffer;
+
+	GLuint backgroundFBO, backgroundTexture;
 };

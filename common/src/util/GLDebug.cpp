@@ -132,5 +132,8 @@ void nse::util::GLDebug::SetupDebugCallback()
 {
 	glEnable(GL_DEBUG_OUTPUT);
 	glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
-	glDebugMessageCallback(DebugCallback, &ignoredIds);
+	if (glDebugMessageCallback == nullptr)
+		std::cout << "Cannot set up an OpenGL debug callback. Perhaps your OpenGL version is too old." << std::endl;
+	else
+		glDebugMessageCallback(DebugCallback, &ignoredIds);
 }

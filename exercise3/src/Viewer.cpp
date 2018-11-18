@@ -8,33 +8,49 @@
 #include <nanogui/button.h>
 #include <nanogui/checkbox.h>
 #include <nanogui/messagedialog.h>
+#include <nanogui/popupbutton.h>
 #include <nanogui/layout.h>
 #include <nanogui/combobox.h>
 
-#include <OpenMesh/Core/IO/MeshIO.hh>
-
 #include <iostream>
+
+#include <OpenMesh/Core/IO/MeshIO.hh>
 
 #include <gui/SliderHelper.h>
 
-#include <chrono>
+#include "Primitives.h"
+#include "SurfaceArea.h"
+#include "Volume.h"
+#include "ShellExtraction.h"
+#include "Smoothing.h"
+#include "Stripification.h"
 
-#include <gui/ShaderPool.h>
-#include "GridTraverser.h"
+const int segmentColorCount = 12;
+const float segmentColors[segmentColorCount][3] =
+{
+	{ 0.651f, 0.808f, 0.890f },
+	{ 0.122f, 0.471f, 0.706f },
+	{ 0.698f, 0.875f, 0.541f },
+	{ 0.200f, 0.627f, 0.173f },
+	{ 0.984f, 0.604f, 0.600f },
+	{ 0.890f, 0.102f, 0.110f },
+	{ 0.992f, 0.749f, 0.435f },
+	{ 1.000f, 0.498f, 0.000f },
+	{ 0.792f, 0.698f, 0.839f },
+	{ 0.416f, 0.239f, 0.604f },
+	{ 1.000f, 1.000f, 0.600f },
+	{ 0.694f, 0.349f, 0.157f },
+
+};
 
 Viewer::Viewer()
-	: AbstractViewer("CG1 Exercise 3"),
-	renderer(polymesh),
-	closestPositions(nse::gui::VertexBuffer),
-	gridPositions(nse::gui::VertexBuffer),
-	rayPositions(nse::gui::VertexBuffer), rayCellsPositions(nse::gui::VertexBuffer)
+	: AbstractViewer("CG1 Exercise 2"),
+	renderer(polymesh)
 { 
 	SetupGUI();	
 
-	closestVAO.generate();
-	gridVAO.generate();
-	rayVAO.generate();
-	rayCellsVAO.generate();
+	polymesh.add_property(faceIdProperty);
+	polymesh.add_property(faceColorProperty);
 }
 
 void Viewer::SetupGUI()
@@ -55,233 +71,185 @@ void Viewer::SetupGUI()
 					"The specified file could not be loaded");
 			}
 			else
-				MeshUpdated();
+				MeshUpdated(true);
 		}
-	});	
-
-	cmbPrimitiveType = new nanogui::ComboBox(mainWindow, { "Use Vertices", "Use Edges", "Use Triangles" });
-	cmbPrimitiveType->setCallback([this](int) { FindClosestPoint(sldQuery->Value()); BuildGridVBO(); });
-	
-	sldQuery = new nse::gui::VectorInput(mainWindow, "Query", Eigen::Vector3f::Zero(), Eigen::Vector3f::Zero(), Eigen::Vector3f::Zero(), [this](const Eigen::Vector3f& p) { FindClosestPoint(p); });
-
-	sldRayOrigin = new nse::gui::VectorInput(mainWindow, "Ray Origin", Eigen::Vector3f::Zero(), Eigen::Vector3f::Zero(), Eigen::Vector3f::Zero(), [this](const Eigen::Vector3f& p) { BuildRayVBOs(); });
-	sldRayDir = new nse::gui::VectorInput(mainWindow, "Ray Direction", Eigen::Vector3f::Constant(-1), Eigen::Vector3f::Constant(1), Eigen::Vector3f::Zero(), [this](const Eigen::Vector3f& p) { BuildRayVBOs(); });
-	nanogui::TextBox* txtRaySteps;
-	auto sldRaySteps = nse::gui::AddLabeledSlider(mainWindow, "Ray Steps", std::make_pair(1, 200), 80, txtRaySteps);
-	sldRaySteps->setCallback([this, txtRaySteps](float value) {
-		raySteps = (int)std::round(value);
-		txtRaySteps->setValue(std::to_string(raySteps));
-		BuildRayVBOs();
 	});
-	sldRaySteps->callback()(sldRaySteps->value());	
 
-	chkRenderMesh = new nanogui::CheckBox(mainWindow, "Render Mesh"); chkRenderMesh->setChecked(true);
-	chkRenderGrid = new nanogui::CheckBox(mainWindow, "Render Non-Empty Grid Cells"); chkRenderGrid->setChecked(false);
-	chkRenderRay = new nanogui::CheckBox(mainWindow, "Render Ray"); chkRenderRay->setChecked(false);
+	auto primitiveBtn = new nanogui::PopupButton(mainWindow, "Create Primitive");
+	primitiveBtn->popup()->setLayout(new nanogui::BoxLayout(nanogui::Orientation::Vertical, nanogui::Alignment::Fill, 4, 4));
+
+	auto quadBtn = new nanogui::Button(primitiveBtn->popup(), "Quad");
+	quadBtn->setCallback([this]() { CreateQuad(polymesh); MeshUpdated(true); });
+
+	auto diskBtn = new nanogui::Button(primitiveBtn->popup(), "Disk");
+	diskBtn->setCallback([this]() { CreateDisk(polymesh, 1, 20); MeshUpdated(true); });
+
+	auto tetBtn = new nanogui::Button(primitiveBtn->popup(), "Tetrahedron");
+	tetBtn->setCallback([this]() { CreateTetrahedron(polymesh); MeshUpdated(true); });
+
+	auto octaBtn = new nanogui::Button(primitiveBtn->popup(), "Octahedron");
+	octaBtn->setCallback([this]() { CreateOctahedron(polymesh, 1); MeshUpdated(true); });
+
+	auto cubeBtn = new nanogui::Button(primitiveBtn->popup(), "Cube");
+	cubeBtn->setCallback([this]() { CreateCube(polymesh); MeshUpdated(true); });
+
+	auto icoBtn = new nanogui::Button(primitiveBtn->popup(), "Icosahedron");
+	icoBtn->setCallback([this]() { CreateIcosahedron(polymesh, 1); MeshUpdated(true); });
+
+	auto cylBtn = new nanogui::Button(primitiveBtn->popup(), "Cylinder");
+	cylBtn->setCallback([this]() { CreateCylinder(polymesh, 0.3f, 1, 20, 10); MeshUpdated(true); });
+
+	auto sphereBtn = new nanogui::Button(primitiveBtn->popup(), "Sphere");
+	sphereBtn->setCallback([this]() { CreateSphere(polymesh, 1, 20, 20); MeshUpdated(true); });
+
+	auto torusBtn = new nanogui::Button(primitiveBtn->popup(), "Torus");
+	torusBtn->setCallback([this]() { CreateTorus(polymesh, 0.4f, 1, 20, 20); MeshUpdated(true); });
+
+	auto arrowBtn = new nanogui::Button(primitiveBtn->popup(), "Arrow");
+	arrowBtn->setCallback([this]() { CreateUnitArrow(polymesh); MeshUpdated(true); });
+
+	auto calcAreaBtn = new nanogui::Button(mainWindow, "Calculate Mesh Area");
+	calcAreaBtn->setCallback([this]() {
+		auto area = ComputeSurfaceArea(polymesh);
+		std::stringstream ss;
+		ss << "The mesh has an area of " << area << ".";
+		new nanogui::MessageDialog(this, nanogui::MessageDialog::Type::Information, "Surface Area",
+			ss.str());
+	});
+
+	auto calcVolBtn = new nanogui::Button(mainWindow, "Calculate Mesh Volume");
+	calcVolBtn->setCallback([this]() {
+		//Triangulate the mesh if it is not a triangle mesh
+		for (auto f : polymesh.faces())
+		{
+			if (polymesh.valence(f) > 3)
+			{
+				std::cout << "Triangulating mesh." << std::endl;
+				polymesh.triangulate();
+				MeshUpdated();
+				break;
+			}
+		}
+		
+		auto vol = ComputeVolume(polymesh);
+		std::stringstream ss;
+		ss << "The mesh has a volume of " << vol << ".";
+		new nanogui::MessageDialog(this, nanogui::MessageDialog::Type::Information, "Volume",
+			ss.str());
+	});
+
+	auto extractShellsBtn = new nanogui::Button(mainWindow, "Extract Shells");
+	extractShellsBtn->setCallback([this]() {
+		auto count = ExtractShells(polymesh, faceIdProperty);
+		std::stringstream ss;
+		ss << "The mesh has " << count << " shells.";
+		new nanogui::MessageDialog(this, nanogui::MessageDialog::Type::Information, "Shell Extraction",
+			ss.str());
+
+		ColorMeshFromIds();
+	});
+
+	auto noiseBtn = new nanogui::Button(mainWindow, "Add Noise");
+	noiseBtn->setCallback([this]() { AddNoise(polymesh); MeshUpdated(); });
+
+	nanogui::TextBox* txtSmoothingIterations;
+	auto sldSmoothingIterations = nse::gui::AddLabeledSlider(mainWindow, "Smoothing Iterations", std::make_pair(1, 100), 20, txtSmoothingIterations);
+	sldSmoothingIterations->setCallback([this, txtSmoothingIterations](float value)
+	{
+		smoothingIterations = (unsigned int)std::round(value);
+		txtSmoothingIterations->setValue(std::to_string(smoothingIterations));
+	});
+	sldSmoothingIterations->callback()(sldSmoothingIterations->value());
+
+	sldSmoothingStrength = nse::gui::AddLabeledSliderWithDefaultDisplay(mainWindow, "Smoothing Strength", std::make_pair(0.0f, 1.0f), 0.1f, 2);
+
+	
+	auto smoothBtn = new nanogui::Button(mainWindow, "Laplacian Smoothing");
+	smoothBtn->setCallback([this]() {
+		SmoothUniformLaplacian(polymesh, sldSmoothingStrength->value(), smoothingIterations);
+		MeshUpdated();
+	});
+
+	nanogui::TextBox* txtStripificationTrials;
+	auto sldStripificationTrials = nse::gui::AddLabeledSlider(mainWindow, "Stripification Trials", std::make_pair(1, 50), 20, txtStripificationTrials);
+	sldStripificationTrials->setCallback([this, txtStripificationTrials](float value)
+	{
+		stripificationTrials = (unsigned int)std::round(value);
+		txtStripificationTrials->setValue(std::to_string(stripificationTrials));
+	});
+	sldStripificationTrials->callback()(sldStripificationTrials->value());
+
+	auto stripifyBtn = new nanogui::Button(mainWindow, "Extract Triangle Strips");
+	stripifyBtn->setCallback([this]() {
+		//Triangulate the mesh if it is not a triangle mesh
+		for (auto f : polymesh.faces())
+		{
+			if (polymesh.valence(f) > 3)
+			{
+				std::cout << "Triangulating mesh." << std::endl;
+				polymesh.triangulate();
+				MeshUpdated();
+				break;
+			}
+		}
+
+		auto count = ExtractTriStrips(polymesh, faceIdProperty, stripificationTrials);
+		std::stringstream ss;
+		ss << "The mesh has " << count << " triangle strips.";
+		new nanogui::MessageDialog(this, nanogui::MessageDialog::Type::Information, "Shell Extraction",
+			ss.str());
+
+		ColorMeshFromIds();
+	});
 
 	shadingBtn = new nanogui::ComboBox(mainWindow, { "Smooth Shading", "Flat Shading" });
 
 	performLayout();
 }
 
-void Viewer::FindClosestPoint(const Eigen::Vector3f& p)
+void Viewer::ColorMeshFromIds()
 {
-	if (polymesh.vertices_empty())
-		return;
-	Eigen::Vector3f closest;
-	auto timeStart = std::chrono::high_resolution_clock::now();
-	switch (cmbPrimitiveType->selectedIndex())
+	//Set face colors
+	for (auto f : polymesh.faces())
 	{
-	case Vertex:
-		closest = vertexTree.ClosestPoint(p);
-		break;
-	case Edge:
-		closest = edgeTree.ClosestPoint(p);
-		break;
-	case Tri:
-		closest = triangleTree.ClosestPoint(p);
-		break;
+		auto shell = polymesh.property(faceIdProperty, f);
+		if (shell < 0)
+			polymesh.property(faceColorProperty, f) = Eigen::Vector4f(0, 0, 0, 1);
+		else
+		{
+			auto& color = segmentColors[shell % segmentColorCount];
+			polymesh.property(faceColorProperty, f) = Eigen::Vector4f(color[0], color[1], color[2], 1);
+		}
+	}
+	hasColors = true;
+	MeshUpdated();
+}
+
+void Viewer::MeshUpdated(bool initNewMesh)
+{
+	if (initNewMesh)
+	{
+		hasColors = false;
+
+		//calculate the bounding box of the mesh
+		nse::math::BoundingBox<float, 3> bbox;
+		for (auto v : polymesh.vertices())
+			bbox.expand(ToEigenVector(polymesh.point(v)));
+		camera().FocusOnBBox(bbox);
 	}	
-	auto timeEnd = std::chrono::high_resolution_clock::now();
-	std::cout << std::fixed << "Closest point query took " << std::chrono::duration_cast<std::chrono::microseconds>(timeEnd - timeStart).count() << " microseconds." << std::endl;
 
-	Eigen::Matrix4Xf points(4, 2);
-	points.block<3, 1>(0, 0) = p;
-	points.block<3, 1>(0, 1) = closest;
-	points.row(3).setConstant(1);
-		
-	closestVAO.bind();
-	ShaderPool::Instance()->simpleShader.bind();
-	closestPositions.uploadData(points).bindToAttribute("position");
-	closestVAO.unbind();
-}
-
-void Viewer::MeshUpdated()
-{
-	//calculate the bounding Box of the mesh
-	nse::math::BoundingBox<float, 3> bbox;
-	for (auto v : polymesh.vertices())
-		bbox.expand(ToEigenVector(polymesh.point(v)));
-	camera().FocusOnBBox(bbox);		
-	bboxMaxLength = bbox.diagonal().maxCoeff();
-
-	polymesh.triangulate();
-	
-	BuildAABBTreeFromVertices(polymesh, vertexTree);
-	BuildAABBTreeFromEdges(polymesh, edgeTree);
-	BuildAABBTreeFromTriangles(polymesh, triangleTree);
-
-	Eigen::Vector3f cellSize = Eigen::Vector3f::Constant(bbox.diagonal().maxCoeff() / 50);
-	BuildHashGridFromVertices(polymesh, vertexGrid, cellSize);
-	BuildHashGridFromEdges(polymesh, edgeGrid, cellSize);
-	BuildHashGridFromTriangles(polymesh, triangleGrid, cellSize);		
-
-	sldQuery->SetBounds(bbox.min, bbox.max);
-	sldQuery->SetValue(bbox.max);
-	FindClosestPoint(bbox.max);
-
-	sldRayOrigin->SetBounds(bbox.min, bbox.max);
-	sldRayOrigin->SetValue(bbox.min);
-	sldRayDir->SetValue(bbox.diagonal().normalized());
-
-	BuildGridVBO();
-	
-	renderer.Update();
-}
-
-void Viewer::BuildGridVBO()
-{
-	switch (cmbPrimitiveType->selectedIndex())
-	{
-	case Vertex:
-		BuildGridVBO(vertexGrid);
-		break;
-	case Edge:
-		BuildGridVBO(edgeGrid);
-		break;
-	case Tri:
-		BuildGridVBO(triangleGrid);
-		break;
-	}
-}
-
-void Viewer::BuildRayVBOs()
-{
-	if (polymesh.vertices_empty())
-		return;
-
-	//Ray line indicator
-	Eigen::Matrix4Xf rayPoints(4, 2);
-	rayPoints.block<3, 1>(0, 0) = sldRayOrigin->Value();
-	rayPoints.block<3, 1>(0, 1) = sldRayOrigin->Value() + sldRayDir->Value().normalized() * 0.2f * bboxMaxLength;
-	rayPoints.row(3).setConstant(1);
-
-	rayVAO.bind();
-	ShaderPool::Instance()->simpleShader.bind();
-	rayPositions.uploadData(rayPoints).bindToAttribute("position");
-	rayVAO.unbind();
-
-	//Ray cells
-	std::vector<Eigen::Vector4f> cellPositions;
-	GridTraverser trav(sldRayOrigin->Value(), sldRayDir->Value(), vertexGrid.CellExtents());
-	for (int i = 0; i < raySteps; ++i, trav++)
-	{
-		auto bounds = vertexGrid.CellBounds(*trav);
-		AddBoxVertices(bounds, cellPositions);
-	}
-
-	rayCellsVAO.bind();
-	rayCellsPositions.uploadData(cellPositions).bindToAttribute("position");
-	rayCellsVAO.unbind();
-	rayCellsIndices = (GLuint)cellPositions.size();
-}
-
-void Viewer::AddBoxVertices(const Box & box, std::vector<Eigen::Vector4f>& positions)
-{
-	auto& lb = box.LowerBound();
-	auto& ub = box.UpperBound();
-	Eigen::Vector4f o; o << lb, 1.0f;
-	Eigen::Vector4f x; x << ub.x() - lb.x(), 0, 0, 0;
-	Eigen::Vector4f y; y << 0, ub.y() - lb.y(), 0, 0;
-	Eigen::Vector4f z; z << 0, 0, ub.z() - lb.z(), 0;
-	positions.push_back(o);
-	positions.push_back(o + x);
-	positions.push_back(o + x);
-	positions.push_back(o + x + y);
-	positions.push_back(o + x + y);
-	positions.push_back(o + y);
-	positions.push_back(o + y);
-	positions.push_back(o);
-
-	positions.push_back(o + z);
-	positions.push_back(o + z + x);
-	positions.push_back(o + z + x);
-	positions.push_back(o + z + x + y);
-	positions.push_back(o + z + x + y);
-	positions.push_back(o + z + y);
-	positions.push_back(o + z + y);
-	positions.push_back(o + z);
-
-	positions.push_back(o);
-	positions.push_back(o + z);
-	positions.push_back(o + x);
-	positions.push_back(o + x + z);
-	positions.push_back(o + y);
-	positions.push_back(o + y + z);
-	positions.push_back(o + x + y);
-	positions.push_back(o + x + y + z);
+	if (hasColors)
+		renderer.UpdateWithPerFaceColor(faceColorProperty);
+	else
+		renderer.Update();
 }
 
 void Viewer::drawContents()
 {
 	glEnable(GL_DEPTH_TEST);
 
-	if (!polymesh.vertices_empty())
-	{
-		Eigen::Matrix4f view, proj;
-		camera().ComputeCameraMatrices(view, proj);
-		Eigen::Matrix4f mvp = proj * view;
+	Eigen::Matrix4f view, proj;
+	camera().ComputeCameraMatrices(view, proj);
 
-		if(chkRenderMesh->checked())
-			renderer.Render(view, proj, shadingBtn->selectedIndex() == 1);
-
-		ShaderPool::Instance()->simpleShader.bind();
-		ShaderPool::Instance()->simpleShader.setUniform("mvp", mvp);
-
-		//Draw line between query point and its closest position
-		closestVAO.bind();				
-		ShaderPool::Instance()->simpleShader.setUniform("color", Eigen::Vector4f(1, 1, 1, 1));
-		glDrawArrays(GL_LINES, 0, 2);
-		ShaderPool::Instance()->simpleShader.setUniform("color", Eigen::Vector4f(1, 0, 0, 1));
-		glPointSize(3.0f);
-		glDrawArrays(GL_POINTS, 0, 2);
-		closestVAO.unbind();
-
-		//Draw non-empty grid cells
-		if (gridIndices > 0 && chkRenderGrid->checked())
-		{
-			gridVAO.bind();
-			ShaderPool::Instance()->simpleShader.setUniform("color", Eigen::Vector4f(0.2f, 0.2f, 0.2f, 1));
-			glDrawArrays(GL_LINES, 0, gridIndices);
-			gridVAO.unbind();
-		}
-
-		if (chkRenderRay->checked())
-		{
-			//Draw line for ray
-			rayVAO.bind();
-			ShaderPool::Instance()->simpleShader.setUniform("color", Eigen::Vector4f(1, 1, 1, 1));
-			glDrawArrays(GL_LINES, 0, 2);
-			ShaderPool::Instance()->simpleShader.setUniform("color", Eigen::Vector4f(0, 1, 0, 1));
-			glPointSize(3.0f);
-			glDrawArrays(GL_POINTS, 0, 1);
-			rayVAO.unbind();
-
-			//Draw ray cells
-			rayCellsVAO.bind();
-			ShaderPool::Instance()->simpleShader.setUniform("color", Eigen::Vector4f(0.0f, 0.8f, 0.0f, 1));
-			glDrawArrays(GL_LINES, 0, rayCellsIndices);
-			rayCellsVAO.unbind();
-		}
-	}
+	renderer.Render(view, proj, shadingBtn->selectedIndex() == 1);
 }

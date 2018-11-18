@@ -33,7 +33,7 @@ namespace nse {
 				Eigen::Matrix4f &proj,
 				float customAspectRatio = 0) const;
 
-			//Applies a zoom by scaling the scene. Positive values of amount increase object sizes.
+			//Applies a zoom by changing the view distance. Positive values of amount decrease the distance.
 			void Zoom(float amount);
 
 			//Sets the extent of the scene, which is kept between znear/zfar.
@@ -63,6 +63,8 @@ namespace nse {
 			bool HandleMouseMove(const Eigen::Vector2i &p, const Eigen::Vector2i &rel, int button, int modifiers);
 			//Forwarded resize event.
 			void resize(const Eigen::Vector2i & s);
+
+			void FixClippingPlanes(float znear, float zfar);
 
 			//Returns the point that the camera focuses on
 			const Eigen::Vector3f& GetFocusPoint() const;
@@ -99,6 +101,8 @@ namespace nse {
 
 			Eigen::Vector3f modelTranslation_start = Eigen::Vector3f::Zero();
 			Eigen::Vector2i translation_start; //mouse position on the screen where translation started	
+
+			float fixedZNear, fixedZFar;
 		};
 	}
 }

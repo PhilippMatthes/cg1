@@ -5,251 +5,182 @@
 #include "Viewer.h"
 
 #include <nanogui/window.h>
-#include <nanogui/button.h>
-#include <nanogui/checkbox.h>
-#include <nanogui/messagedialog.h>
-#include <nanogui/popupbutton.h>
 #include <nanogui/layout.h>
-#include <nanogui/combobox.h>
-
-#include <iostream>
-
-#include <OpenMesh/Core/IO/MeshIO.hh>
+#include <nanogui/checkbox.h>
 
 #include <gui/SliderHelper.h>
 
-#include "Primitives.h"
-#include "SurfaceArea.h"
-#include "Volume.h"
-#include "ShellExtraction.h"
-#include "Smoothing.h"
-#include "Stripification.h"
+#include <iostream>
 
-const int segmentColorCount = 12;
-const float segmentColors[segmentColorCount][3] =
-{
-	{ 0.651f, 0.808f, 0.890f },
-	{ 0.122f, 0.471f, 0.706f },
-	{ 0.698f, 0.875f, 0.541f },
-	{ 0.200f, 0.627f, 0.173f },
-	{ 0.984f, 0.604f, 0.600f },
-	{ 0.890f, 0.102f, 0.110f },
-	{ 0.992f, 0.749f, 0.435f },
-	{ 1.000f, 0.498f, 0.000f },
-	{ 0.792f, 0.698f, 0.839f },
-	{ 0.416f, 0.239f, 0.604f },
-	{ 1.000f, 1.000f, 0.600f },
-	{ 0.694f, 0.349f, 0.157f },
+#include <stb_image.h>
 
-};
+#include "glsl.h"
+#include "textures.h"
+
+const uint32_t PATCH_SIZE = 256; //number of vertices along one side of the terrain patch
 
 Viewer::Viewer()
 	: AbstractViewer("CG1 Exercise 2"),
-	renderer(polymesh)
+	terrainPositions(nse::gui::VertexBuffer), terrainIndices(nse::gui::IndexBuffer),
+	offsetBuffer(nse::gui::VertexBuffer)
 { 
-	SetupGUI();	
+	LoadShaders();
+	CreateGeometry();
+	
+	//Create a texture and framebuffer for the background
+	glGenFramebuffers(1, &backgroundFBO);	
+	glGenTextures(1, &backgroundTexture);	
 
-	polymesh.add_property(faceIdProperty);
-	polymesh.add_property(faceColorProperty);
+	//Align camera to view a reasonable part of the terrain
+	camera().SetSceneExtent(nse::math::BoundingBox<float, 3>(Eigen::Vector3f(0, 0, 0), Eigen::Vector3f(PATCH_SIZE - 1, 0, PATCH_SIZE - 1)));
+	camera().FocusOnPoint(0.5f * Eigen::Vector3f(PATCH_SIZE - 1, 15, PATCH_SIZE - 1));	
+	camera().Zoom(-30);
+	camera().RotateAroundFocusPointLocal(Eigen::AngleAxisf(-0.5f, Eigen::Vector3f::UnitY()) * Eigen::AngleAxisf(-0.05f, Eigen::Vector3f::UnitX()));
+	camera().FixClippingPlanes(0.1, 1000);
 }
 
-void Viewer::SetupGUI()
+bool Viewer::resizeEvent(const Eigen::Vector2i&)
 {
-	auto mainWindow = SetupMainWindow();	
+	//Re-generate the texture and FBO for the background
+	glBindFramebuffer(GL_FRAMEBUFFER, backgroundFBO);
+	glBindTexture(GL_TEXTURE_2D, backgroundTexture);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width(), height(), 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, backgroundTexture, 0);
+	auto fboStatus = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+	if (fboStatus != GL_FRAMEBUFFER_COMPLETE)
+		std::cout << "Warning: Background framebuffer is not complete: " << fboStatus << std::endl;
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-	auto loadFileBtn = new nanogui::Button(mainWindow, "Load Mesh");
-	loadFileBtn->setCallback([this]() {
-		std::vector<std::pair<std::string, std::string>> fileTypes;
-		fileTypes.push_back(std::make_pair("obj", "OBJ File"));
-		auto file = nanogui::file_dialog(fileTypes, false);
-		if (!file.empty())
-		{
-			polymesh.clear();
-			if (!OpenMesh::IO::read_mesh(polymesh, file))
-			{
-				new nanogui::MessageDialog(this, nanogui::MessageDialog::Type::Warning, "Load Mesh",
-					"The specified file could not be loaded");
-			}
-			else
-				MeshUpdated(true);
-		}
-	});
+	return false;
+}
 
-	auto primitiveBtn = new nanogui::PopupButton(mainWindow, "Create Primitive");
-	primitiveBtn->popup()->setLayout(new nanogui::BoxLayout(nanogui::Orientation::Vertical, nanogui::Alignment::Fill, 4, 4));
+void Viewer::LoadShaders()
+{
+	skyShader.init("Sky Shader", std::string((const char*)sky_vert, sky_vert_size), std::string((const char*)sky_frag, sky_frag_size));
+	terrainShader.init("Terrain Shader", std::string((const char*)terrain_vert, terrain_vert_size), std::string((const char*)terrain_frag, terrain_frag_size));
+}
 
-	auto quadBtn = new nanogui::Button(primitiveBtn->popup(), "Quad");
-	quadBtn->setCallback([this]() { CreateQuad(polymesh); MeshUpdated(true); });
+GLuint CreateTexture(const unsigned char* fileData, size_t fileLength, bool repeat = true)
+{
+	GLuint textureName;
+	int textureWidth, textureHeight, textureChannels;
+	auto pixelData = stbi_load_from_memory(fileData, fileLength, &textureWidth, &textureHeight, &textureChannels, 3);
+	textureName = 0;
+	stbi_image_free(pixelData);
+	return textureName;
+}
 
-	auto diskBtn = new nanogui::Button(primitiveBtn->popup(), "Disk");
-	diskBtn->setCallback([this]() { CreateDisk(polymesh, 1, 20); MeshUpdated(true); });
+void Viewer::CreateGeometry()
+{
+	//empty VAO for sky
+	emptyVAO.generate();
 
-	auto tetBtn = new nanogui::Button(primitiveBtn->popup(), "Tetrahedron");
-	tetBtn->setCallback([this]() { CreateTetrahedron(polymesh); MeshUpdated(true); });
+	//terrain VAO	
+	terrainVAO.generate();
+	terrainVAO.bind();
+	
+	std::vector<Eigen::Vector4f> positions;
+	std::vector<uint32_t> indices;
+	
+	/*Generate positions and indices for a terrain patch with a
+	  single triangle strip */
 
-	auto octaBtn = new nanogui::Button(primitiveBtn->popup(), "Octahedron");
-	octaBtn->setCallback([this]() { CreateOctahedron(polymesh, 1); MeshUpdated(true); });
-
-	auto cubeBtn = new nanogui::Button(primitiveBtn->popup(), "Cube");
-	cubeBtn->setCallback([this]() { CreateCube(polymesh); MeshUpdated(true); });
-
-	auto icoBtn = new nanogui::Button(primitiveBtn->popup(), "Icosahedron");
-	icoBtn->setCallback([this]() { CreateIcosahedron(polymesh, 1); MeshUpdated(true); });
-
-	auto cylBtn = new nanogui::Button(primitiveBtn->popup(), "Cylinder");
-	cylBtn->setCallback([this]() { CreateCylinder(polymesh, 0.3f, 1, 20, 10); MeshUpdated(true); });
-
-	auto sphereBtn = new nanogui::Button(primitiveBtn->popup(), "Sphere");
-	sphereBtn->setCallback([this]() { CreateSphere(polymesh, 1, 20, 20); MeshUpdated(true); });
-
-	auto torusBtn = new nanogui::Button(primitiveBtn->popup(), "Torus");
-	torusBtn->setCallback([this]() { CreateTorus(polymesh, 0.4f, 1, 20, 20); MeshUpdated(true); });
-
-	auto arrowBtn = new nanogui::Button(primitiveBtn->popup(), "Arrow");
-	arrowBtn->setCallback([this]() { CreateUnitArrow(polymesh); MeshUpdated(true); });
-
-	auto calcAreaBtn = new nanogui::Button(mainWindow, "Calculate Mesh Area");
-	calcAreaBtn->setCallback([this]() {
-		auto area = ComputeSurfaceArea(polymesh);
-		std::stringstream ss;
-		ss << "The mesh has an area of " << area << ".";
-		new nanogui::MessageDialog(this, nanogui::MessageDialog::Type::Information, "Surface Area",
-			ss.str());
-	});
-
-	auto calcVolBtn = new nanogui::Button(mainWindow, "Calculate Mesh Volume");
-	calcVolBtn->setCallback([this]() {
-		//Triangulate the mesh if it is not a triangle mesh
-		for (auto f : polymesh.faces())
-		{
-			if (polymesh.valence(f) > 3)
-			{
-				std::cout << "Triangulating mesh." << std::endl;
-				polymesh.triangulate();
-				MeshUpdated();
-				break;
-			}
-		}
-		
-		auto vol = ComputeVolume(polymesh);
-		std::stringstream ss;
-		ss << "The mesh has a volume of " << vol << ".";
-		new nanogui::MessageDialog(this, nanogui::MessageDialog::Type::Information, "Volume",
-			ss.str());
-	});
-
-	auto extractShellsBtn = new nanogui::Button(mainWindow, "Extract Shells");
-	extractShellsBtn->setCallback([this]() {
-		auto count = ExtractShells(polymesh, faceIdProperty);
-		std::stringstream ss;
-		ss << "The mesh has " << count << " shells.";
-		new nanogui::MessageDialog(this, nanogui::MessageDialog::Type::Information, "Shell Extraction",
-			ss.str());
-
-		ColorMeshFromIds();
-	});
-
-	auto noiseBtn = new nanogui::Button(mainWindow, "Add Noise");
-	noiseBtn->setCallback([this]() { AddNoise(polymesh); MeshUpdated(); });
-
-	nanogui::TextBox* txtSmoothingIterations;
-	auto sldSmoothingIterations = nse::gui::AddLabeledSlider(mainWindow, "Smoothing Iterations", std::make_pair(1, 100), 20, txtSmoothingIterations);
-	sldSmoothingIterations->setCallback([this, txtSmoothingIterations](float value)
-	{
-		smoothingIterations = (unsigned int)std::round(value);
-		txtSmoothingIterations->setValue(std::to_string(smoothingIterations));
-	});
-	sldSmoothingIterations->callback()(sldSmoothingIterations->value());
-
-	sldSmoothingStrength = nse::gui::AddLabeledSliderWithDefaultDisplay(mainWindow, "Smoothing Strength", std::make_pair(0.0f, 1.0f), 0.1f, 2);
+	terrainShader.bind();
+	terrainPositions.uploadData(positions).bindToAttribute("position");
+	terrainIndices.uploadData(indices.size() * sizeof(uint32_t), indices.data());
 
 	
-	auto smoothBtn = new nanogui::Button(mainWindow, "Laplacian Smoothing");
-	smoothBtn->setCallback([this]() {
-		SmoothUniformLaplacian(polymesh, sldSmoothingStrength->value(), smoothingIterations);
-		MeshUpdated();
-	});
 
-	nanogui::TextBox* txtStripificationTrials;
-	auto sldStripificationTrials = nse::gui::AddLabeledSlider(mainWindow, "Stripification Trials", std::make_pair(1, 50), 20, txtStripificationTrials);
-	sldStripificationTrials->setCallback([this, txtStripificationTrials](float value)
-	{
-		stripificationTrials = (unsigned int)std::round(value);
-		txtStripificationTrials->setValue(std::to_string(stripificationTrials));
-	});
-	sldStripificationTrials->callback()(sldStripificationTrials->value());
-
-	auto stripifyBtn = new nanogui::Button(mainWindow, "Extract Triangle Strips");
-	stripifyBtn->setCallback([this]() {
-		//Triangulate the mesh if it is not a triangle mesh
-		for (auto f : polymesh.faces())
-		{
-			if (polymesh.valence(f) > 3)
-			{
-				std::cout << "Triangulating mesh." << std::endl;
-				polymesh.triangulate();
-				MeshUpdated();
-				break;
-			}
-		}
-
-		auto count = ExtractTriStrips(polymesh, faceIdProperty, stripificationTrials);
-		std::stringstream ss;
-		ss << "The mesh has " << count << " triangle strips.";
-		new nanogui::MessageDialog(this, nanogui::MessageDialog::Type::Information, "Shell Extraction",
-			ss.str());
-
-		ColorMeshFromIds();
-	});
-
-	shadingBtn = new nanogui::ComboBox(mainWindow, { "Smooth Shading", "Flat Shading" });
-
-	performLayout();
+	//textures
+	grassTexture = CreateTexture((unsigned char*)grass_jpg, grass_jpg_size);
+	rockTexture = CreateTexture((unsigned char*)rock_jpg, rock_jpg_size);
+	roadColorTexture = CreateTexture((unsigned char*)roadcolor_jpg, roadcolor_jpg_size);
+	roadNormalMap = CreateTexture((unsigned char*)roadnormals_jpg, roadnormals_jpg_size);
+	roadSpecularMap = CreateTexture((unsigned char*)roadspecular_jpg, roadspecular_jpg_size);
+	alphaMap = CreateTexture((unsigned char*)alpha_jpg, alpha_jpg_size, false);
 }
 
-void Viewer::ColorMeshFromIds()
+void Viewer::RenderSky()
 {
-	//Set face colors
-	for (auto f : polymesh.faces())
+	Eigen::Matrix4f skyView = view;
+	for (int i = 0; i < 3; ++i)
+		skyView.col(i).normalize();
+	skyView.col(3).head<3>().setZero();
+	Eigen::Matrix4f skyMvp = proj * skyView;
+	glDepthMask(GL_FALSE);
+	glEnable(GL_DEPTH_CLAMP);
+	emptyVAO.bind();
+	skyShader.bind();
+	skyShader.setUniform("mvp", skyMvp);
+	glDrawArrays(GL_TRIANGLE_STRIP, 0, 6);
+	glDisable(GL_DEPTH_CLAMP);
+	glDepthMask(GL_TRUE);
+
+	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, backgroundFBO);
+	glBlitFramebuffer(0, 0, width(), height(), 0, 0, width(), height(), GL_COLOR_BUFFER_BIT, GL_NEAREST);
+	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+}
+
+void CalculateViewFrustum(const Eigen::Matrix4f& mvp, Eigen::Vector4f* frustumPlanes, nse::math::BoundingBox<float, 3>& bbox)
+{
+	frustumPlanes[0] = (mvp.row(3) + mvp.row(0)).transpose();
+	frustumPlanes[1] = (mvp.row(3) - mvp.row(0)).transpose();
+	frustumPlanes[2] = (mvp.row(3) + mvp.row(1)).transpose();
+	frustumPlanes[3] = (mvp.row(3) - mvp.row(1)).transpose();
+	frustumPlanes[4] = (mvp.row(3) + mvp.row(2)).transpose();
+	frustumPlanes[5] = (mvp.row(3) - mvp.row(2)).transpose();
+
+	Eigen::Matrix4f invMvp = mvp.inverse();
+	bbox.reset();
+	for(int x = -1; x <= 1; x += 2)
+		for(int y = -1; y <= 1; y += 2)
+			for (int z = -1; z <= 1; z += 2)
 	{
-		auto shell = polymesh.property(faceIdProperty, f);
-		if (shell < 0)
-			polymesh.property(faceColorProperty, f) = Eigen::Vector4f(0, 0, 0, 1);
-		else
-		{
-			auto& color = segmentColors[shell % segmentColorCount];
-			polymesh.property(faceColorProperty, f) = Eigen::Vector4f(color[0], color[1], color[2], 1);
-		}
+		Eigen::Vector4f corner = invMvp * Eigen::Vector4f(x, y, z, 1);
+		corner /= corner.w();
+		bbox.expand(corner.head<3>());
 	}
-	hasColors = true;
-	MeshUpdated();
 }
 
-void Viewer::MeshUpdated(bool initNewMesh)
+bool IsBoxCompletelyBehindPlane(const Eigen::Vector3f& boxMin, const Eigen::Vector3f& boxMax, const Eigen::Vector4f& plane)
 {
-	if (initNewMesh)
-	{
-		hasColors = false;
-
-		//calculate the bounding box of the mesh
-		nse::math::BoundingBox<float, 3> bbox;
-		for (auto v : polymesh.vertices())
-			bbox.expand(ToEigenVector(polymesh.point(v)));
-		camera().FocusOnBBox(bbox);
-	}	
-
-	if (hasColors)
-		renderer.UpdateWithPerFaceColor(faceColorProperty);
-	else
-		renderer.Update();
+	return
+		plane.dot(Eigen::Vector4f(boxMin.x(), boxMin.y(), boxMin.z(), 1)) < 0 &&
+		plane.dot(Eigen::Vector4f(boxMin.x(), boxMin.y(), boxMax.z(), 1)) < 0 &&
+		plane.dot(Eigen::Vector4f(boxMin.x(), boxMax.y(), boxMin.z(), 1)) < 0 &&
+		plane.dot(Eigen::Vector4f(boxMin.x(), boxMax.y(), boxMin.z(), 1)) < 0 &&
+		plane.dot(Eigen::Vector4f(boxMax.x(), boxMin.y(), boxMin.z(), 1)) < 0 &&
+		plane.dot(Eigen::Vector4f(boxMax.x(), boxMin.y(), boxMax.z(), 1)) < 0 &&
+		plane.dot(Eigen::Vector4f(boxMax.x(), boxMax.y(), boxMin.z(), 1)) < 0 &&
+		plane.dot(Eigen::Vector4f(boxMax.x(), boxMax.y(), boxMin.z(), 1)) < 0;
 }
 
 void Viewer::drawContents()
 {
-	glEnable(GL_DEPTH_TEST);
-
-	Eigen::Matrix4f view, proj;
 	camera().ComputeCameraMatrices(view, proj);
 
-	renderer.Render(view, proj, shadingBtn->selectedIndex() == 1);
+	Eigen::Matrix4f mvp = proj * view;
+	Eigen::Vector3f cameraPosition = view.inverse().col(3).head<3>();
+	int visiblePatches = 0;
+
+	RenderSky();
+	
+	//render terrain
+	glEnable(GL_DEPTH_TEST);
+	terrainVAO.bind();
+	terrainShader.bind();	
+	
+	terrainShader.setUniform("screenSize", Eigen::Vector2f(width(), height()), false);
+	terrainShader.setUniform("mvp", mvp);
+	terrainShader.setUniform("cameraPos", cameraPosition, false);
+
+	/* Task: Render the terrain */
+
+	
+	//Render text
+	nvgBeginFrame(mNVGContext, width(), height(), mPixelRatio);
+	std::string text = "Patches visible: " + std::to_string(visiblePatches);
+	nvgText(mNVGContext, 10, 20, text.c_str(), nullptr);
+	nvgEndFrame(mNVGContext);
 }

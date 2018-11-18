@@ -8,8 +8,13 @@
 #include <gui/SliderHelper.h>
 #include <util/OpenMeshUtils.h>
 
-#include "Registration.h"
-#include <random>
+#include "AABBTree.h"
+#include "HashGrid.h"
+#include "Point.h"
+#include "LineSegment.h"
+#include "Triangle.h"
+
+#include <gui/ShaderPool.h>
 
 class Viewer : public nse::gui::AbstractViewer
 {
@@ -18,32 +23,68 @@ public:
 
 	void drawContents();
 
-	virtual bool resizeEvent(const Eigen::Vector2i&);
+private:
 
-private:	
+	enum PrimitiveType
+	{
+		Vertex, Edge, Tri
+	};
 
 	void SetupGUI();
-	void MeshUpdated();	
-	void BuildCorrVBOs();
+	void MeshUpdated();
 
-	nse::math::BoundingBox<float, 3> meshBbox, expandedBbox;
+	void FindClosestPoint(const Eigen::Vector3f& p);
+	void BuildGridVBO();
+	void BuildRayVBOs();
+
+	template <typename Grid>
+	void BuildGridVBO(const Grid& grid)
+	{
+		std::vector<Eigen::Vector4f> positions;
+		for (auto it = grid.NonEmptyCellsBegin(); it != grid.NonEmptyCellsEnd(); ++it)
+		{
+			auto box = grid.CellBounds(it->first);
+			AddBoxVertices(box, positions);
+		}
+
+		ShaderPool::Instance()->simpleShader.bind();
+		gridVAO.bind();
+		gridPositions.uploadData(positions).bindToAttribute("position");
+		gridVAO.unbind();
+		gridIndices = (GLuint)positions.size();
+	}
+
+	void AddBoxVertices(const Box& box, std::vector<Eigen::Vector4f>& positions);
 
 	nanogui::ComboBox* shadingBtn;
-	nanogui::CheckBox* chkRenderTextureMap;
-	nanogui::CheckBox* chkRenderSecondMesh;
+	nanogui::CheckBox* chkRenderMesh;
+	nanogui::CheckBox* chkRenderGrid;
+	nanogui::CheckBox* chkRenderRay;
+	int raySteps;
+
+	nse::gui::VectorInput* sldQuery, *sldRayOrigin, *sldRayDir;
+	nanogui::ComboBox* cmbPrimitiveType;
 	
 	HEMesh polymesh;
-	MeshRenderer renderer;	
+	float bboxMaxLength;
+	MeshRenderer renderer;
+	
+	AABBTree<Point> vertexTree;
+	AABBTree<LineSegment> edgeTree;
+	AABBTree<Triangle> triangleTree;
+	
+	HashGrid<Point> vertexGrid;
+	HashGrid<LineSegment> edgeGrid;
+	HashGrid<Triangle> triangleGrid;
 
-	bool hasParametrization = false;
-	Eigen::Matrix4f texMapProjectionMatrix;
+	nse::gui::GLBuffer closestPositions;
+	nse::gui::GLVertexArray closestVAO;
 
-	Eigen::Affine3f secondMeshTransform;
+	nse::gui::GLBuffer gridPositions;
+	nse::gui::GLVertexArray gridVAO;
+	GLuint gridIndices;
 
-	std::mt19937 rnd;
-	std::vector<correspondence> correspondences;
-
-	size_t corrCount;
-	nse::gui::GLBuffer corrPositions;
-	nse::gui::GLVertexArray corrVAO;
+	nse::gui::GLBuffer rayPositions, rayCellsPositions;
+	nse::gui::GLVertexArray rayVAO, rayCellsVAO;
+	GLuint rayCellsIndices;
 };

@@ -10,11 +10,9 @@
 
 int main(int argc, char* argv[])
 {
-	std::cout.imbue(std::locale(""));
-
 	nanogui::init();
 
-	{		
+	{
 		nanogui::ref<Viewer> viewer = new Viewer();
 		viewer->setVisible(true);
 

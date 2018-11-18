@@ -14,7 +14,7 @@
 using namespace nse::gui;
 
 Camera::Camera(const nanogui::Widget & parent)
-	: parent(parent)
+	: parent(parent), fixedZNear(std::numeric_limits<float>::quiet_NaN())
 {
 	params.arcball.setSize(parent.size());
 }
@@ -27,8 +27,17 @@ void Camera::ComputeCameraMatrices(Eigen::Matrix4f & view, Eigen::Matrix4f & pro
 
 	float depthOfSceneCenter = (params.sceneCenter - cameraPosition).dot(viewDirection);
 	float minZNear = 0.001f * params.sceneRadius;
-	float znear = std::max(minZNear, depthOfSceneCenter - params.sceneRadius);
-	float zfar = std::max(znear + minZNear, depthOfSceneCenter + params.sceneRadius);
+	float znear, zfar;
+	if (std::isnan(fixedZNear))
+	{
+		znear = std::max(minZNear, depthOfSceneCenter - params.sceneRadius);
+		zfar = std::max(znear + minZNear, depthOfSceneCenter + params.sceneRadius);
+	}
+	else
+	{
+		znear = fixedZNear;
+		zfar = fixedZFar;
+	}
 
 	float fH = std::tan(params.fovy / 360.0f * (float)M_PI) * znear;
 	float aspectRatio = customAspectRatio == 0 ? (float)parent.width() / parent.height() : customAspectRatio;
@@ -46,6 +55,7 @@ void Camera::Zoom(float amount)
 
 void Camera::SetSceneExtent(const nse::math::BoundingBox<float, 3>& bbox)
 {
+	fixedZNear = std::numeric_limits<float>::quiet_NaN();
 	params.sceneCenter = 0.5f * (bbox.min + bbox.max);	
 	params.sceneRadius = bbox.diagonal().norm() / 2.0f;
 }
@@ -174,4 +184,10 @@ bool Camera::HandleMouseMove(const Eigen::Vector2i & p, const Eigen::Vector2i & 
 void Camera::resize(const Eigen::Vector2i & s)
 {
 	params.arcball.setSize(s);
+}
+
+void Camera::FixClippingPlanes(float znear, float zfar)
+{
+	fixedZNear = znear;
+	fixedZFar = zfar;
 }

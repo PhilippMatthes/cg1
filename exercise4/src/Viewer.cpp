@@ -13,23 +13,28 @@
 
 #include <OpenMesh/Core/IO/MeshIO.hh>
 
+#include <iostream>
+
 #include <gui/SliderHelper.h>
 
-#include "Parametrization.h"
-#include "Registration.h"
+#include <chrono>
 
 #include <gui/ShaderPool.h>
+#include "GridTraverser.h"
 
 Viewer::Viewer()
-	: AbstractViewer("CG1 Exercise 4"),
+	: AbstractViewer("CG1 Exercise 3"),
 	renderer(polymesh),
-	corrPositions(nse::gui::VertexBuffer)
+	closestPositions(nse::gui::VertexBuffer),
+	gridPositions(nse::gui::VertexBuffer),
+	rayPositions(nse::gui::VertexBuffer), rayCellsPositions(nse::gui::VertexBuffer)
 { 
-	polymesh.request_vertex_texcoords2D();
-
-	corrVAO.generate();
-
 	SetupGUI();	
+
+	closestVAO.generate();
+	gridVAO.generate();
+	rayVAO.generate();
+	rayCellsVAO.generate();
 }
 
 void Viewer::SetupGUI()
@@ -52,184 +57,179 @@ void Viewer::SetupGUI()
 			else
 				MeshUpdated();
 		}
-	});		
+	});	
+
+	cmbPrimitiveType = new nanogui::ComboBox(mainWindow, { "Use Vertices", "Use Edges", "Use Triangles" });
+	cmbPrimitiveType->setCallback([this](int) { FindClosestPoint(sldQuery->Value()); BuildGridVBO(); });
+	
+	sldQuery = new nse::gui::VectorInput(mainWindow, "Query", Eigen::Vector3f::Zero(), Eigen::Vector3f::Zero(), Eigen::Vector3f::Zero(), [this](const Eigen::Vector3f& p) { FindClosestPoint(p); });
+
+	sldRayOrigin = new nse::gui::VectorInput(mainWindow, "Ray Origin", Eigen::Vector3f::Zero(), Eigen::Vector3f::Zero(), Eigen::Vector3f::Zero(), [this](const Eigen::Vector3f& p) { BuildRayVBOs(); });
+	sldRayDir = new nse::gui::VectorInput(mainWindow, "Ray Direction", Eigen::Vector3f::Constant(-1), Eigen::Vector3f::Constant(1), Eigen::Vector3f::Zero(), [this](const Eigen::Vector3f& p) { BuildRayVBOs(); });
+	nanogui::TextBox* txtRaySteps;
+	auto sldRaySteps = nse::gui::AddLabeledSlider(mainWindow, "Ray Steps", std::make_pair(1, 200), 80, txtRaySteps);
+	sldRaySteps->setCallback([this, txtRaySteps](float value) {
+		raySteps = (int)std::round(value);
+		txtRaySteps->setValue(std::to_string(raySteps));
+		BuildRayVBOs();
+	});
+	sldRaySteps->callback()(sldRaySteps->value());	
+
+	chkRenderMesh = new nanogui::CheckBox(mainWindow, "Render Mesh"); chkRenderMesh->setChecked(true);
+	chkRenderGrid = new nanogui::CheckBox(mainWindow, "Render Non-Empty Grid Cells"); chkRenderGrid->setChecked(false);
+	chkRenderRay = new nanogui::CheckBox(mainWindow, "Render Ray"); chkRenderRay->setChecked(false);
 
 	shadingBtn = new nanogui::ComboBox(mainWindow, { "Smooth Shading", "Flat Shading" });
 
 	performLayout();
+}
 
-	auto paramWindow = new nanogui::Window(this, "Parametrization");
-	paramWindow->setPosition(Eigen::Vector2i(mainWindow->position().x(), mainWindow->position().y() + mainWindow->size().y() + 15));
-	paramWindow->setLayout(new nanogui::BoxLayout(nanogui::Orientation::Vertical, nanogui::Alignment::Fill, 4, 4));
+void Viewer::FindClosestPoint(const Eigen::Vector3f& p)
+{
+	if (polymesh.vertices_empty())
+		return;
+	Eigen::Vector3f closest;
+	auto timeStart = std::chrono::high_resolution_clock::now();
+	switch (cmbPrimitiveType->selectedIndex())
+	{
+	case Vertex:
+		closest = vertexTree.ClosestPoint(p);
+		break;
+	case Edge:
+		closest = edgeTree.ClosestPoint(p);
+		break;
+	case Tri:
+		closest = triangleTree.ClosestPoint(p);
+		break;
+	}	
+	auto timeEnd = std::chrono::high_resolution_clock::now();
+	std::cout << std::fixed << "Closest point query took " << std::chrono::duration_cast<std::chrono::microseconds>(timeEnd - timeStart).count() << " microseconds." << std::endl;
 
-	auto cmbWeightType = new nanogui::ComboBox(paramWindow, { "Constant Weight", "Edge Length Weight", "Inverse Edge Length Weight", "Cotan Weight" });
-
-	auto parametrizeBtn = new nanogui::Button(paramWindow, "Calculate Parametrization");
-	parametrizeBtn->setCallback([this, cmbWeightType]() {
-		if (polymesh.n_vertices() == 0)
-		{
-			new nanogui::MessageDialog(this, nanogui::MessageDialog::Type::Warning, "Parametrization", "Please load a mesh for parametrization.");
-		}
-		else
-		{
-			bool success;
-			switch (cmbWeightType->selectedIndex())
-			{
-			case 0:
-				success = ComputeParametrizationOfTopologicalDisk<CONSTANT_WEIGHT>(polymesh);
-				break;
-			case 1:
-				success = ComputeParametrizationOfTopologicalDisk<EDGE_LENGTH_WEIGHT>(polymesh);
-				break;
-			case 2:
-				success = ComputeParametrizationOfTopologicalDisk<INV_EDGE_LENGTH_WEIGHT>(polymesh);
-				break;
-			case 3:
-				success = ComputeParametrizationOfTopologicalDisk<COTAN_WEIGHT>(polymesh);
-				break;
-			}
-			if (success)
-			{
-				renderer.Update();
-				hasParametrization = true;
-			}
-			else
-				new nanogui::MessageDialog(this, nanogui::MessageDialog::Type::Warning, "Parametrization", "Parametrization failed.");
-		}
-	});
-
-	chkRenderTextureMap = new nanogui::CheckBox(paramWindow, "Render Texture Map");
-
-	performLayout();
-
-	auto registrationWindow = new nanogui::Window(this, "Registration");
-	registrationWindow->setPosition(Eigen::Vector2i(paramWindow->position().x(), paramWindow->position().y() + paramWindow->size().y() + 15));
-	registrationWindow->setLayout(new nanogui::BoxLayout(nanogui::Orientation::Vertical, nanogui::Alignment::Fill, 4, 4));
-
-	auto rotateBtn = new nanogui::Button(registrationWindow, "Random Rotation");
-	rotateBtn->setCallback([this]() {
-		secondMeshTransform = Eigen::Affine3f(Eigen::Translation3f(3 * meshBbox.diagonal().x(), 0, 0));
-		std::uniform_real_distribution<float> dist(-1.0f, 1.0f);
-		Eigen::Quaternionf q(dist(rnd), dist(rnd), dist(rnd), dist(rnd));
-		q.normalize();
-		secondMeshTransform *= q;
-
-		correspondences.clear();
-		BuildCorrVBOs();
-	});
-
-	corrCount = 10;
-	nanogui::TextBox* txtCorrCount;
-	auto sldCorrCount = nse::gui::AddLabeledSlider(registrationWindow, "Correspondence Count", std::make_pair(1.0f, 50.0f), (float)corrCount, txtCorrCount);
-	sldCorrCount->setCallback([this, txtCorrCount](float value) {
-		corrCount = (int)std::round(value);
-		txtCorrCount->setValue(std::to_string(corrCount));
-	});
-	sldCorrCount->callback()(sldCorrCount->value());
-
-	auto autoCorrs = new nanogui::Button(registrationWindow, "Automatic Correspondences");
-	autoCorrs->setCallback([this]() {
-		if (corrCount > polymesh.n_vertices())
-			return;
-		std::uniform_int_distribution<int> dist(0, (int)polymesh.n_vertices());
-
-		correspondences.clear();
-
-		for (int i = 0; i < corrCount; ++i)
-		{
-			auto v = polymesh.vertex_handle(dist(rnd));
-			auto p = ToEigenVector(polymesh.point(v));
-			correspondences.push_back(std::make_pair(p, secondMeshTransform * p));
-		}
-
-		BuildCorrVBOs();
-	});
-
-	auto distortCorrespondencesBtn = new nanogui::Button(registrationWindow, "Distort Correspondences");
-	distortCorrespondencesBtn->setCallback([this]() {
-		std::normal_distribution<float> dist(0.0f, meshBbox.diagonal().norm() * 0.01f);
-		for (auto& c : correspondences)
-			c.first += Eigen::Vector3f(dist(rnd), dist(rnd), dist(rnd));
-		BuildCorrVBOs();
-	});
-
-	auto registerBtn = new nanogui::Button(registrationWindow, "Register");
-	registerBtn->setCallback([this]() {
-		auto T = CalculateRigidRegistration(correspondences);
-		secondMeshTransform = T * secondMeshTransform;
-
-		for (auto& c : correspondences)
-			c.second = T * c.second;
-		BuildCorrVBOs();
-	});
-
-	chkRenderSecondMesh = new nanogui::CheckBox(registrationWindow, "Render Second Mesh", [this](bool checked) {
-		if (checked)
-			camera().FocusOnBBox(expandedBbox);
-		else
-			camera().FocusOnBBox(meshBbox);
-	});
-
-	performLayout();
-
-	auto maxWidth = std::max(mainWindow->size().x(), std::max(paramWindow->size().x(), registrationWindow->size().x()));
-	mainWindow->setFixedWidth(maxWidth);
-	paramWindow->setFixedWidth(maxWidth);
-	registrationWindow->setFixedWidth(maxWidth);
-
-	performLayout();
+	Eigen::Matrix4Xf points(4, 2);
+	points.block<3, 1>(0, 0) = p;
+	points.block<3, 1>(0, 1) = closest;
+	points.row(3).setConstant(1);
+		
+	closestVAO.bind();
+	ShaderPool::Instance()->simpleShader.bind();
+	closestPositions.uploadData(points).bindToAttribute("position");
+	closestVAO.unbind();
 }
 
 void Viewer::MeshUpdated()
 {
 	//calculate the bounding Box of the mesh
-	meshBbox.reset();
+	nse::math::BoundingBox<float, 3> bbox;
 	for (auto v : polymesh.vertices())
-		meshBbox.expand(ToEigenVector(polymesh.point(v)));
+		bbox.expand(ToEigenVector(polymesh.point(v)));
+	camera().FocusOnBBox(bbox);		
+	bboxMaxLength = bbox.diagonal().maxCoeff();
 
-	expandedBbox = meshBbox;
-	secondMeshTransform = Eigen::Affine3f(Eigen::Translation3f(3 * meshBbox.diagonal().x(), 0, 0));
-	expandedBbox.max.x() += 3 * meshBbox.diagonal().x();
-
-	if(chkRenderSecondMesh->checked())
-		camera().FocusOnBBox(expandedBbox);
-	else
-		camera().FocusOnBBox(meshBbox);
-
-	polymesh.triangulate();	
-	correspondences.clear();
+	polymesh.triangulate();
 	
-	hasParametrization = false;
+	BuildAABBTreeFromVertices(polymesh, vertexTree);
+	BuildAABBTreeFromEdges(polymesh, edgeTree);
+	BuildAABBTreeFromTriangles(polymesh, triangleTree);
 
+	Eigen::Vector3f cellSize = Eigen::Vector3f::Constant(bbox.diagonal().maxCoeff() / 50);
+	BuildHashGridFromVertices(polymesh, vertexGrid, cellSize);
+	BuildHashGridFromEdges(polymesh, edgeGrid, cellSize);
+	BuildHashGridFromTriangles(polymesh, triangleGrid, cellSize);		
+
+	sldQuery->SetBounds(bbox.min, bbox.max);
+	sldQuery->SetValue(bbox.max);
+	FindClosestPoint(bbox.max);
+
+	sldRayOrigin->SetBounds(bbox.min, bbox.max);
+	sldRayOrigin->SetValue(bbox.min);
+	sldRayDir->SetValue(bbox.diagonal().normalized());
+
+	BuildGridVBO();
+	
 	renderer.Update();
-	BuildCorrVBOs();
 }
 
-void Viewer::BuildCorrVBOs()
+void Viewer::BuildGridVBO()
 {
-	std::vector<Eigen::Vector4f> pos;
-	pos.reserve(correspondences.size() * 2);
-	for (auto& c : correspondences)
+	switch (cmbPrimitiveType->selectedIndex())
 	{
-		pos.push_back(Eigen::Vector4f(c.first.x(), c.first.y(), c.first.z(), 1.0f));
-		pos.push_back(Eigen::Vector4f(c.second.x(), c.second.y(), c.second.z(), 1.0f));
+	case Vertex:
+		BuildGridVBO(vertexGrid);
+		break;
+	case Edge:
+		BuildGridVBO(edgeGrid);
+		break;
+	case Tri:
+		BuildGridVBO(triangleGrid);
+		break;
+	}
+}
+
+void Viewer::BuildRayVBOs()
+{
+	if (polymesh.vertices_empty())
+		return;
+
+	//Ray line indicator
+	Eigen::Matrix4Xf rayPoints(4, 2);
+	rayPoints.block<3, 1>(0, 0) = sldRayOrigin->Value();
+	rayPoints.block<3, 1>(0, 1) = sldRayOrigin->Value() + sldRayDir->Value().normalized() * 0.2f * bboxMaxLength;
+	rayPoints.row(3).setConstant(1);
+
+	rayVAO.bind();
+	ShaderPool::Instance()->simpleShader.bind();
+	rayPositions.uploadData(rayPoints).bindToAttribute("position");
+	rayVAO.unbind();
+
+	//Ray cells
+	std::vector<Eigen::Vector4f> cellPositions;
+	GridTraverser trav(sldRayOrigin->Value(), sldRayDir->Value(), vertexGrid.CellExtents());
+	for (int i = 0; i < raySteps; ++i, trav++)
+	{
+		auto bounds = vertexGrid.CellBounds(*trav);
+		AddBoxVertices(bounds, cellPositions);
 	}
 
-	corrVAO.bind();
-	ShaderPool::Instance()->simpleShader.bind();
-	corrPositions.uploadData(pos).bindToAttribute("position");
-	corrVAO.unbind();
+	rayCellsVAO.bind();
+	rayCellsPositions.uploadData(cellPositions).bindToAttribute("position");
+	rayCellsVAO.unbind();
+	rayCellsIndices = (GLuint)cellPositions.size();
 }
 
-bool Viewer::resizeEvent(const Eigen::Vector2i& size)
+void Viewer::AddBoxVertices(const Box & box, std::vector<Eigen::Vector4f>& positions)
 {
-	AbstractViewer::resizeEvent(size);
+	auto& lb = box.LowerBound();
+	auto& ub = box.UpperBound();
+	Eigen::Vector4f o; o << lb, 1.0f;
+	Eigen::Vector4f x; x << ub.x() - lb.x(), 0, 0, 0;
+	Eigen::Vector4f y; y << 0, ub.y() - lb.y(), 0, 0;
+	Eigen::Vector4f z; z << 0, 0, ub.z() - lb.z(), 0;
+	positions.push_back(o);
+	positions.push_back(o + x);
+	positions.push_back(o + x);
+	positions.push_back(o + x + y);
+	positions.push_back(o + x + y);
+	positions.push_back(o + y);
+	positions.push_back(o + y);
+	positions.push_back(o);
 
-	float ratio = (float)size.x() / size.y();
-	Eigen::Affine3f proj = Eigen::Translation3f(1.0f - 0.1f / ratio - 1.8f / ratio, -0.9f, 0.0f) * Eigen::AlignedScaling3f(1.8f / ratio, 1.8f, 1.0f);
-	texMapProjectionMatrix = proj.matrix();
-	
-	return true;
+	positions.push_back(o + z);
+	positions.push_back(o + z + x);
+	positions.push_back(o + z + x);
+	positions.push_back(o + z + x + y);
+	positions.push_back(o + z + x + y);
+	positions.push_back(o + z + y);
+	positions.push_back(o + z + y);
+	positions.push_back(o + z);
+
+	positions.push_back(o);
+	positions.push_back(o + z);
+	positions.push_back(o + x);
+	positions.push_back(o + x + z);
+	positions.push_back(o + y);
+	positions.push_back(o + y + z);
+	positions.push_back(o + x + y);
+	positions.push_back(o + x + y + z);
 }
 
 void Viewer::drawContents()
@@ -242,26 +242,46 @@ void Viewer::drawContents()
 		camera().ComputeCameraMatrices(view, proj);
 		Eigen::Matrix4f mvp = proj * view;
 
-		renderer.Render(view, proj, shadingBtn->selectedIndex() == 1, hasParametrization);
+		if(chkRenderMesh->checked())
+			renderer.Render(view, proj, shadingBtn->selectedIndex() == 1);
 
-		if (chkRenderSecondMesh->checked())
+		ShaderPool::Instance()->simpleShader.bind();
+		ShaderPool::Instance()->simpleShader.setUniform("mvp", mvp);
+
+		//Draw line between query point and its closest position
+		closestVAO.bind();				
+		ShaderPool::Instance()->simpleShader.setUniform("color", Eigen::Vector4f(1, 1, 1, 1));
+		glDrawArrays(GL_LINES, 0, 2);
+		ShaderPool::Instance()->simpleShader.setUniform("color", Eigen::Vector4f(1, 0, 0, 1));
+		glPointSize(3.0f);
+		glDrawArrays(GL_POINTS, 0, 2);
+		closestVAO.unbind();
+
+		//Draw non-empty grid cells
+		if (gridIndices > 0 && chkRenderGrid->checked())
 		{
-			renderer.Render(view * secondMeshTransform.matrix(), proj, shadingBtn->selectedIndex() == 1, false, Eigen::Vector4f(0.2f, 0.3f, 0.4f, 1.0f));
-			if (correspondences.size() > 0)
-			{
-				corrVAO.bind();
-				ShaderPool::Instance()->simpleShader.bind();
-				ShaderPool::Instance()->simpleShader.setUniform("color", Eigen::Vector4f(1, 1, 1, 1));
-				ShaderPool::Instance()->simpleShader.setUniform("mvp", mvp);
-				glDrawArrays(GL_LINES, 0, (GLsizei)correspondences.size() * 2);
-				corrVAO.unbind();
-			}
+			gridVAO.bind();
+			ShaderPool::Instance()->simpleShader.setUniform("color", Eigen::Vector4f(0.2f, 0.2f, 0.2f, 1));
+			glDrawArrays(GL_LINES, 0, gridIndices);
+			gridVAO.unbind();
 		}
 
-		if (hasParametrization && chkRenderTextureMap->checked())
+		if (chkRenderRay->checked())
 		{
-			glDisable(GL_DEPTH_TEST);
-			renderer.RenderTextureMap(texMapProjectionMatrix, Eigen::Vector4f(1, 1, 1, 1));
+			//Draw line for ray
+			rayVAO.bind();
+			ShaderPool::Instance()->simpleShader.setUniform("color", Eigen::Vector4f(1, 1, 1, 1));
+			glDrawArrays(GL_LINES, 0, 2);
+			ShaderPool::Instance()->simpleShader.setUniform("color", Eigen::Vector4f(0, 1, 0, 1));
+			glPointSize(3.0f);
+			glDrawArrays(GL_POINTS, 0, 1);
+			rayVAO.unbind();
+
+			//Draw ray cells
+			rayCellsVAO.bind();
+			ShaderPool::Instance()->simpleShader.setUniform("color", Eigen::Vector4f(0.0f, 0.8f, 0.0f, 1));
+			glDrawArrays(GL_LINES, 0, rayCellsIndices);
+			rayCellsVAO.unbind();
 		}
 	}
 }
