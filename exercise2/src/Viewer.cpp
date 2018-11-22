@@ -88,20 +88,24 @@ void Viewer::CreateGeometry()
 
     // Source: https://tu-dresden.de/ing/informatik/smt/cgv/ressourcen/dateien/lehre/ws-18-19/cg1/CGI_03_Geometry.pdf?lang=en
 
-    for(int x = 0; x < PATCH_SIZE; ++x) {
-        for (int z = 0; z < PATCH_SIZE; ++z) {
+    for(int x = 0; x <= PATCH_SIZE; ++x) {
+        for (int z = 0; z <= PATCH_SIZE; ++z) {
             Eigen::Vector4f position (x, 0, z, 1);
 
             positions.push_back(position);
         }
     }
 
+    glEnable(GL_PRIMITIVE_RESTART);
+    GLuint restartIndex = 2147483647;
+    glPrimitiveRestartIndex(restartIndex);
+
     for (int x = 0; x < PATCH_SIZE; ++x) {
-        for (int z = 0; z < PATCH_SIZE; ++z) {
+        for (int z = 0; z <= PATCH_SIZE; ++z) {
             indices.push_back(x*(PATCH_SIZE+1)+z);
             indices.push_back((x+1)*(PATCH_SIZE+1)+z);
         }
-//        indices.push_back(RESTART_IDX);
+		indices.push_back(restartIndex);
     }
 
     //    x z 1 2
@@ -214,7 +218,9 @@ void Viewer::drawContents()
 	terrainShader.setUniform("cameraPos", cameraPosition, false);
 
 	/* Task: Render the terrain */
-    glDrawArrays(GL_TRIANGLES, 0, PATCH_SIZE * PATCH_SIZE - 2);
+	int count = PATCH_SIZE * PATCH_SIZE * 2 + PATCH_SIZE - 2;
+	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    glDrawElements(GL_TRIANGLE_STRIP, count, GL_UNSIGNED_INT, 0);
 	
 	//Render text
 	nvgBeginFrame(mNVGContext, width(), height(), mPixelRatio);
