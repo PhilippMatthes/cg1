@@ -8,8 +8,12 @@ out vec4 color;
 
 uniform vec3 cameraPos;
 
+in vec3 normals;
+
+uniform sampler2D grassTexture;
 
 uniform sampler2D background;
+
 uniform vec2 screenSize;
 
 const vec3 dirToLight = normalize(vec3(1, 3, 1));	
@@ -32,17 +36,16 @@ vec4 getBackgroundColor()
 void main()
 {
 	//surface geometry
-	vec3 n = vec3(0, 1, 0);
 	vec3 dirToViewer = vec3(0, 1, 0);
 
 	//material properties	
-	color = vec4(0.6, 0.6, 0.6, 1);
-	float specular = 0;
+	color = texture(grassTexture, gl_FragCoord.xy);
+	float specular = 0.3;
 
-	
+
 
 	//Calculate light
-	color = calculateLighting(color, specular, n, dirToViewer);
+	color = calculateLighting(color, specular, normals, dirToViewer);
 
 	
 }

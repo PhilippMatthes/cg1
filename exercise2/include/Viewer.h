@@ -34,6 +34,8 @@ private:
 	nse::gui::GLBuffer terrainPositions;
 	nse::gui::GLBuffer terrainIndices;
 
+	nse::gui::GLVertexArray grassVAO;
+
 	GLuint grassTexture, rockTexture, roadColorTexture, roadNormalMap, roadSpecularMap, alphaMap;
 
 	nse::gui::GLBuffer offsetBuffer;

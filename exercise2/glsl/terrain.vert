@@ -6,18 +6,22 @@
 
 in vec4 position;
 
-
+out vec3 normals;
 
 uniform mat4 mvp;
 
 //Returns the height of the procedural terrain at a given xz position
 float getTerrainHeight(vec2 p);
-
+vec3 calculateNormals(vec2 p);
 
 
 void main()
 {
-	gl_Position = mvp * position;
+    normals = calculateNormals(position.xz);
+
+    float terrainHeight = getTerrainHeight(position.xz);
+    vec4 heightCorrectedPosition = vec4(position.x, position.y + terrainHeight, position.z, position.w);
+	gl_Position = mvp * heightCorrectedPosition;
 }
 
 //source: https://gist.github.com/patriciogonzalezvivo/670c22f3966e662d2f83
@@ -56,4 +60,21 @@ float getTerrainHeight(vec2 p)
 		amplitude *= 0.45;
 	}
 	return 15 * total / maxAmplitude;
+}
+
+vec3 calculateNormals(vec2 p) {
+    // Based on: https://stackoverflow.com/questions/13983189/opengl-how-to-calculate-normals-in-a-terrain-height-grid
+    vec3 off = vec3(0.5, 0.5, 0.0);
+    float hL = getTerrainHeight(p.xy - off.xz);
+    float hR = getTerrainHeight(p.xy + off.xz);
+    float hD = getTerrainHeight(p.xy - off.zy);
+    float hU = getTerrainHeight(p.xy + off.zy);
+
+    // deduce terrain normal
+    vec3 N = vec3(0.0, 0.0, 0.0);
+    N.x = hL - hR;
+    N.y = hD - hU;
+    N.z = 2.0;
+    N = normalize(N);
+    return N;
 }
