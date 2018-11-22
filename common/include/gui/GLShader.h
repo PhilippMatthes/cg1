@@ -122,6 +122,7 @@ namespace nse {
 			//Returns the shader program that has been bound last.
 			static GLShader* currentProgram();
 
+			GLuint mProgramShader;
 		protected:
 			static GLShader* _currentProgram;
 
@@ -131,7 +132,6 @@ namespace nse {
 			GLuint mTessellationEvalShader;
 			GLuint mFragmentShader;
 			GLuint mGeometryShader;
-			GLuint mProgramShader;
 			std::map<std::string, std::string> mDefinitions;
 		};
 	}

@@ -29,7 +29,7 @@ Viewer::Viewer()
 	
 	//Create a texture and framebuffer for the background
 	glGenFramebuffers(1, &backgroundFBO);	
-	glGenTextures(1, &backgroundTexture);	
+	glGenTextures(1, &backgroundTexture);
 
 	//Align camera to view a reasonable part of the terrain
 	camera().SetSceneExtent(nse::math::BoundingBox<float, 3>(Eigen::Vector3f(0, 0, 0), Eigen::Vector3f(PATCH_SIZE - 1, 0, PATCH_SIZE - 1)));
@@ -63,12 +63,31 @@ void Viewer::LoadShaders()
 
 GLuint CreateTexture(const unsigned char* fileData, size_t fileLength, bool repeat = true)
 {
-	GLuint textureName;
 	int textureWidth, textureHeight, textureChannels;
 	auto pixelData = stbi_load_from_memory(fileData, fileLength, &textureWidth, &textureHeight, &textureChannels, 3);
-	textureName = 0;
-	stbi_image_free(pixelData);
-	return textureName;
+
+	// Based on: https://learnopengl.com/Getting-started/Textures
+	GLuint tex;
+	glGenTextures(1, &tex);
+
+    if (repeat) {
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
+    } else {
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+    }
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, tex, 0);
+
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, textureWidth, textureHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, pixelData);
+    glGenerateMipmap(GL_TEXTURE_2D);
+
+    stbi_image_free(pixelData);
+
+	return tex;
 }
 
 void Viewer::CreateGeometry()
@@ -97,15 +116,14 @@ void Viewer::CreateGeometry()
     }
 
     glEnable(GL_PRIMITIVE_RESTART);
-    GLuint restartIndex = 2147483647;
-    glPrimitiveRestartIndex(restartIndex);
+    glPrimitiveRestartIndex(UINT_MAX);
 
     for (int x = 0; x < PATCH_SIZE; ++x) {
         for (int z = 0; z <= PATCH_SIZE; ++z) {
             indices.push_back(x*(PATCH_SIZE+1)+z);
             indices.push_back((x+1)*(PATCH_SIZE+1)+z);
         }
-		indices.push_back(restartIndex);
+		indices.push_back(UINT_MAX);
     }
 
     //    x z 1 2
@@ -132,7 +150,7 @@ void Viewer::CreateGeometry()
 	terrainPositions.uploadData(positions).bindToAttribute("position");
 	terrainIndices.uploadData(indices.size() * sizeof(uint32_t), indices.data());
 
-	
+
 
 	//textures
 	grassTexture = CreateTexture((unsigned char*)grass_jpg, grass_jpg_size);
@@ -211,13 +229,19 @@ void Viewer::drawContents()
 	//render terrain
 	glEnable(GL_DEPTH_TEST);
 	terrainVAO.bind();
-	terrainShader.bind();	
-	
+	terrainShader.bind();
+
 	terrainShader.setUniform("screenSize", Eigen::Vector2f(width(), height()), false);
 	terrainShader.setUniform("mvp", mvp);
 	terrainShader.setUniform("cameraPos", cameraPosition, false);
 
 	/* Task: Render the terrain */
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, grassTexture);
+	glUniform1i(terrainShader.uniform("grassTexture"), 0);
+
+	std::cout << terrainShader.uniform("grassTexture");
+
 	int count = PATCH_SIZE * PATCH_SIZE * 2 + PATCH_SIZE - 2;
 	// FYI: Uncomment if necessary to show wireframe model
 	// glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
