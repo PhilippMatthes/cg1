@@ -86,6 +86,44 @@ void Viewer::CreateGeometry()
 	/*Generate positions and indices for a terrain patch with a
 	  single triangle strip */
 
+    // Source: https://tu-dresden.de/ing/informatik/smt/cgv/ressourcen/dateien/lehre/ws-18-19/cg1/CGI_03_Geometry.pdf?lang=en
+
+    for(int x = 0; x < PATCH_SIZE; ++x) {
+        for (int z = 0; z < PATCH_SIZE; ++z) {
+            Eigen::Vector4f position (x, 0, z, 1);
+
+            positions.push_back(position);
+        }
+    }
+
+    for (int x = 0; x < PATCH_SIZE; ++x) {
+        for (int z = 0; z < PATCH_SIZE; ++z) {
+            indices.push_back(x*(PATCH_SIZE+1)+z);
+            indices.push_back((x+1)*(PATCH_SIZE+1)+z);
+        }
+//        indices.push_back(RESTART_IDX);
+    }
+
+    //    x z 1 2
+
+    //    0 0 | 0 11
+    //    0 1 | 1 12
+    //    0 2 | 2 13
+    //    0 3 | 3 14
+    //    0 4 | 4 15
+    //    0 5 | 5 16
+    //    0 6 | 6 17
+    //    0 7 | 7 18
+    //    0 8 | 8 19
+    //    0 9 | 9 20
+    // Insert Restart Index
+    //    1 0 | 11 22
+    //    1 1 | 12 23
+    //    1 2 | 13 24
+    //    1 3 | 14 25
+
+    // create vector
+
 	terrainShader.bind();
 	terrainPositions.uploadData(positions).bindToAttribute("position");
 	terrainIndices.uploadData(indices.size() * sizeof(uint32_t), indices.data());
@@ -176,7 +214,7 @@ void Viewer::drawContents()
 	terrainShader.setUniform("cameraPos", cameraPosition, false);
 
 	/* Task: Render the terrain */
-
+    glDrawArrays(GL_TRIANGLES, 0, PATCH_SIZE * PATCH_SIZE - 2);
 	
 	//Render text
 	nvgBeginFrame(mNVGContext, width(), height(), mPixelRatio);
