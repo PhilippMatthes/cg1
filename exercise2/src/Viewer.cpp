@@ -219,7 +219,8 @@ void Viewer::drawContents()
 
 	/* Task: Render the terrain */
 	int count = PATCH_SIZE * PATCH_SIZE * 2 + PATCH_SIZE - 2;
-	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+	// FYI: Uncomment if necessary to show wireframe model
+	// glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     glDrawElements(GL_TRIANGLE_STRIP, count, GL_UNSIGNED_INT, 0);
 	
 	//Render text
