@@ -54,7 +54,7 @@ void main()
 
 	//material properties
 
-    // Task 2.2.4 + 2.2.3
+    // Tasks 2.2.4 + 2.2.3
     // Based on: http://thedemonthrone.ca/projects/rendering-terrain/rendering-terrain-part-23-height-and-slope-based-colours/
 
     // Calculate terrain color
