@@ -236,6 +236,14 @@ void Viewer::drawContents()
 	glBindTexture(GL_TEXTURE_2D, rockTexture);
 	terrainShader.setUniform("rockTexture", 1, false);
 
+	glActiveTexture(GL_TEXTURE2);
+	glBindTexture(GL_TEXTURE_2D, roadColorTexture);
+	terrainShader.setUniform("roadColorTexture", 2, false);
+
+	glActiveTexture(GL_TEXTURE3);
+	glBindTexture(GL_TEXTURE_2D, alphaMap);
+	terrainShader.setUniform("alphaMap", 3, false);
+
 	int count = PATCH_SIZE * PATCH_SIZE * 2 + PATCH_SIZE - 2;
 	// FYI: Uncomment if necessary to show wireframe model
 	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
