@@ -150,6 +150,8 @@ void Viewer::CreateGeometry()
 	roadColorTexture = CreateTexture((unsigned char*)roadcolor_jpg, roadcolor_jpg_size);
 	roadNormalMap = CreateTexture((unsigned char*)roadnormals_jpg, roadnormals_jpg_size);
 	roadSpecularMap = CreateTexture((unsigned char*)roadspecular_jpg, roadspecular_jpg_size);
+
+	// Road texture should not repeat itself
 	alphaMap = CreateTexture((unsigned char*)alpha_jpg, alpha_jpg_size, false);
 }
 
@@ -243,6 +245,10 @@ void Viewer::drawContents()
 	glActiveTexture(GL_TEXTURE3);
 	glBindTexture(GL_TEXTURE_2D, alphaMap);
 	terrainShader.setUniform("alphaMap", 3, false);
+
+	glActiveTexture(GL_TEXTURE4);
+	glBindTexture(GL_TEXTURE_2D, roadSpecularMap);
+	terrainShader.setUniform("roadSpecularMap", 4, false);
 
 	int count = PATCH_SIZE * PATCH_SIZE * 2 + PATCH_SIZE - 2;
 	// FYI: Uncomment if necessary to show wireframe model

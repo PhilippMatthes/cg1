@@ -16,6 +16,7 @@ uniform sampler2D grassTexture;
 uniform sampler2D rockTexture;
 uniform sampler2D roadColorTexture;
 uniform sampler2D alphaMap;
+uniform sampler2D roadSpecularMap;
 
 uniform sampler2D background;
 
@@ -48,7 +49,7 @@ void main()
 
     //For Oren-Nayar lighting, uncomment the following:
     //Based on: https://stackoverflow.com/questions/40583715/oren-nayar-lighting-in-opengl-how-to-calculate-view-direction-in-fragment-shade#40596525
-	//dirToViewer = normalize(vec3(-(gl_FragCoord.xy - screenSize/2) / (screenSize/4), 1.0));
+	dirToViewer = normalize(vec3(-(gl_FragCoord.xy - screenSize/2) / (screenSize/4), 1.0));
 
 	//material properties
 
@@ -56,6 +57,8 @@ void main()
     // Based on: http://thedemonthrone.ca/projects/rendering-terrain/rendering-terrain-part-23-height-and-slope-based-colours/
 
 	vec3 alphaMapColor = texture(alphaMap, vertexPosition.xz / 255).xyz;
+
+	float specular = 0;
 
 	if(alphaMapColor==vec3(0, 0, 0)){
 
@@ -66,13 +69,15 @@ void main()
 
 	} else {
 
+
         color = texture(roadColorTexture, textureCoordinates);
         // uncomment the statement below, to make the road even more visible
         //color= color * 2;
 
-	}
+        vec3 specularVector = vec3(texture(roadSpecularMap, textureCoordinates));
+        specular = specularVector.x;
 
-	float specular = 0.3;
+	}
 
 	//Calculate light
 	color = calculateLighting(color, specular, normals, dirToViewer);
