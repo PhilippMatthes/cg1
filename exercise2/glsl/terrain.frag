@@ -38,6 +38,10 @@ void main()
 	//surface geometry
 	vec3 dirToViewer = vec3(0, 1, 0);
 
+    //For Oren-Nayar lighting, uncomment the following:
+    //Based on: https://stackoverflow.com/questions/40583715/oren-nayar-lighting-in-opengl-how-to-calculate-view-direction-in-fragment-shade#40596525
+	//dirToViewer = normalize(vec3(-(gl_FragCoord.xy - screenSize/2) / (screenSize/4), 1.0));
+
 	//material properties	
 	color = texture(grassTexture, gl_FragCoord.xy);
 	float specular = 0.3;
