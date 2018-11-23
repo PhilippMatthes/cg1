@@ -86,7 +86,7 @@ void main()
     float blendedSpecular = alphaMapColor.x * roadSpecular;
 
 	//Calculate light
-	color = calculateLighting(vec4(1.0, 1.0, 1.0, 1.0), blendedSpecular, blendedNormals, dirToViewer);
+	color = calculateLighting(color, blendedSpecular, blendedNormals, dirToViewer);
 
     // Uncomment for specular testing:
     // color = vec4(blendedSpecular, blendedSpecular, blendedSpecular, blendedSpecular);
