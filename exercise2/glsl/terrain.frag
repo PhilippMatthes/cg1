@@ -17,6 +17,7 @@ uniform sampler2D rockTexture;
 uniform sampler2D roadColorTexture;
 uniform sampler2D alphaMap;
 uniform sampler2D roadSpecularMap;
+uniform sampler2D roadNormalMap;
 
 uniform sampler2D background;
 
@@ -56,28 +57,21 @@ void main()
     // Task 2.2.4 + 2.2.3
     // Based on: http://thedemonthrone.ca/projects/rendering-terrain/rendering-terrain-part-23-height-and-slope-based-colours/
 
-	vec3 alphaMapColor = texture(alphaMap, vertexPosition.xz / 255).xyz;
+	float slope = acos(normals.z);
+    float blend = (slope - 0.25f) * (1.0f / (0.5f - 0.25f));
+    vec4 terrainColor = mix(texture(grassTexture, textureCoordinates), texture(rockTexture, textureCoordinates), blend);
 
-	float specular = 0;
+    vec3 alphaMapColor = texture(alphaMap, vertexPosition.xz / 255).xyz;
+    vec3 roadNormals = vec3(texture(roadNormalMap, textureCoordinates).rgb);
+    roadNormals = normalize(roadNormals * 2.0 - 1.0);
+    vec4 roadColor = texture(roadColorTexture, textureCoordinates);
+    roadColor = vec4((alphaMapColor * roadColor.xyz), roadColor.w);
 
-	if(alphaMapColor==vec3(0, 0, 0)){
+    color = mix(terrainColor, roadColor, alphaMapColor.x);
 
-        float slope = acos(normals.z);
-        float blend = (slope - 0.25f) * (1.0f / (0.5f - 0.25f));
-
-        color = mix(texture(grassTexture, textureCoordinates), texture(rockTexture, textureCoordinates), blend);
-
-	} else {
-
-
-        color = texture(roadColorTexture, textureCoordinates);
-        // uncomment the statement below, to make the road even more visible
-        //color= color * 2;
-
-        vec3 specularVector = vec3(texture(roadSpecularMap, textureCoordinates));
-        specular = specularVector.x;
-
-	}
+    float specular = 0;
+    vec3 specularVector = vec3(texture(roadSpecularMap, textureCoordinates));
+    specular = specularVector.x;
 
 	//Calculate light
 	color = calculateLighting(color, specular, normals, dirToViewer);

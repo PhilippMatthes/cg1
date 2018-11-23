@@ -250,6 +250,10 @@ void Viewer::drawContents()
 	glBindTexture(GL_TEXTURE_2D, roadSpecularMap);
 	terrainShader.setUniform("roadSpecularMap", 4, false);
 
+	glActiveTexture(GL_TEXTURE5);
+	glBindTexture(GL_TEXTURE_2D, roadNormalMap);
+	terrainShader.setUniform("roadNormalMap", 5, false);
+
 	int count = PATCH_SIZE * PATCH_SIZE * 2 + PATCH_SIZE - 2;
 	// FYI: Uncomment if necessary to show wireframe model
 	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
