@@ -116,12 +116,6 @@ void Viewer::CreateGeometry()
 
 	// Task 2.2.5 a)
 	// See: https://tu-dresden.de/ing/informatik/smt/cgv/ressourcen/dateien/lehre/ws-18-19/cg1/CGI_03_Geometry.pdf?lang=de
-	std::vector<Eigen::Vector2f> offsets;
-	for (int i = -1; i < 2; i++)
-        for (int j = -1; j < 2; j++)
-	        offsets.emplace_back(i * PATCH_SIZE, j * PATCH_SIZE);
-	offsetBuffer.uploadData(offsets);
-
     GLuint offset = static_cast<GLuint>(terrainShader.attrib("offset"));
     glEnableVertexAttribArray(offset);
     offsetBuffer.bind();
@@ -194,11 +188,11 @@ void Viewer::RenderSky()
 void CalculateViewFrustum(const Eigen::Matrix4f& mvp, Eigen::Vector4f* frustumPlanes, nse::math::BoundingBox<float, 3>& bbox)
 {
 	frustumPlanes[0] = (mvp.row(3) + mvp.row(0)).transpose();
-	frustumPlanes[1] = (mvp.row(3) - mvp.row(0)).transpose();
-	frustumPlanes[2] = (mvp.row(3) + mvp.row(1)).transpose();
-	frustumPlanes[3] = (mvp.row(3) - mvp.row(1)).transpose();
-	frustumPlanes[4] = (mvp.row(3) + mvp.row(2)).transpose();
-	frustumPlanes[5] = (mvp.row(3) - mvp.row(2)).transpose();
+    frustumPlanes[1] = (mvp.row(3) - mvp.row(0)).transpose();
+    frustumPlanes[2] = (mvp.row(3) + mvp.row(1)).transpose();
+    frustumPlanes[3] = (mvp.row(3) - mvp.row(1)).transpose();
+    frustumPlanes[4] = (mvp.row(3) + mvp.row(2)).transpose();
+    frustumPlanes[5] = (mvp.row(3) - mvp.row(2)).transpose();
 
 	Eigen::Matrix4f invMvp = mvp.inverse();
 	bbox.reset();
@@ -232,10 +226,32 @@ void Viewer::drawContents()
 	// Task 2.2.5 b)
 	Eigen::Matrix4f mvp = proj * view;
 	Eigen::Vector3f cameraPosition = view.inverse().col(3).head<3>();
-	Eigen::Vector4f frustumPlanes;
+	// IMHO, C++ sucks... I had to literally search 30 minutes for this crap.
+	// In other languages, such as Swift, Kotlin, Python, Java...
+	// you'd just initialize an Array and propagate data
+	// through it. Why would you ever handle
+	// the pointer magic yourself?
+	// This just wastes time (and money) and
+	// is prone to error.
+    auto *frustumPlanes = new Eigen::Vector4f[6];
 	nse::math::BoundingBox<float, 3> boundingBox;
 
-	int visiblePatches = 9;
+	// Calculate view frustum planes
+	CalculateViewFrustum(mvp, frustumPlanes, boundingBox);
+
+	// TODO:
+	// For each patch in the bounding box:
+	// check, if the bounding box of this patch
+	// lies completely behind the view frustum
+	// bounding box. If so, don't render it.
+	// If it lies within, add the patch offset to
+	// offsets (with offsets.emplace_back(..., ...))
+    int visiblePatches = 0;
+    std::vector<Eigen::Vector2f> offsets;
+
+
+    offsetBuffer.uploadData(offsets);
+	bool isBoxCompletelyBehindPlane = IsBoxCompletelyBehindPlane(boundingBox.min, boundingBox.max, plane);
 
 	RenderSky();
 	
