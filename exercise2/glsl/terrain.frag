@@ -57,23 +57,28 @@ void main()
     // Task 2.2.4 + 2.2.3
     // Based on: http://thedemonthrone.ca/projects/rendering-terrain/rendering-terrain-part-23-height-and-slope-based-colours/
 
+    // Calculate terrain color
 	float slope = acos(normals.z);
     float blend = (slope - 0.25f) * (1.0f / (0.5f - 0.25f));
     vec4 terrainColor = mix(texture(grassTexture, textureCoordinates), texture(rockTexture, textureCoordinates), blend);
 
+    // Calculate road color
     vec3 alphaMapColor = texture(alphaMap, vertexPosition.xz / 255).xyz;
     vec3 roadNormals = vec3(texture(roadNormalMap, textureCoordinates).rgb);
     roadNormals = normalize(roadNormals * 2.0 - 1.0);
     vec4 roadColor = texture(roadColorTexture, textureCoordinates);
     roadColor = vec4((alphaMapColor * roadColor.xyz), roadColor.w);
 
-    color = mix(terrainColor, roadColor, alphaMapColor.x);
-
-    float specular = 0;
+    // Calculate road specular
     vec3 specularVector = vec3(texture(roadSpecularMap, textureCoordinates));
-    specular = specularVector.x;
+    float roadSpecular = specularVector.x;
+
+    // Blend color, normals and specular together
+    color = mix(terrainColor, roadColor, alphaMapColor.x);
+    vec3 blendedNormals = mix(normals, roadNormals, alphaMapColor.x);
+    float blendedSpecular = alphaMapColor.x * 0.3;
 
 	//Calculate light
-	color = calculateLighting(color, specular, normals, dirToViewer);
+	color = calculateLighting(color, blendedSpecular, blendedNormals, dirToViewer);
 	
 }
