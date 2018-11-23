@@ -63,12 +63,19 @@ void Viewer::LoadShaders()
 
 GLuint CreateTexture(const unsigned char* fileData, size_t fileLength, bool repeat = true)
 {
+
+	std::cout << "Loading texture ..." << std::endl;
+
+	//width, height, and number of channels of the loaded texture
 	int textureWidth, textureHeight, textureChannels;
 	auto pixelData = stbi_load_from_memory(fileData, fileLength, &textureWidth, &textureHeight, &textureChannels, 3);
 
 	// Based on: https://learnopengl.com/Getting-started/Textures
+	// & https://github.com/NSchertler/CG1/
 	GLuint tex;
 	glGenTextures(1, &tex);
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, tex);
 
     if (repeat) {
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
@@ -77,15 +84,21 @@ GLuint CreateTexture(const unsigned char* fileData, size_t fileLength, bool repe
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
     }
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, tex, 0);
 
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, textureWidth, textureHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, pixelData);
-    glGenerateMipmap(GL_TEXTURE_2D);
-
-    stbi_image_free(pixelData);
+	if (pixelData)
+	{
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, textureWidth, textureHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, pixelData);
+		glGenerateMipmap(GL_TEXTURE_2D);
+	}
+	else
+	{
+		std::cout << "Failed to load texture" << std::endl;
+	}
+	stbi_image_free(pixelData);
 
 	return tex;
 }
@@ -126,31 +139,11 @@ void Viewer::CreateGeometry()
 		indices.push_back(UINT_MAX);
     }
 
-    //    x z 1 2
-
-    //    0 0 | 0 11
-    //    0 1 | 1 12
-    //    0 2 | 2 13
-    //    0 3 | 3 14
-    //    0 4 | 4 15
-    //    0 5 | 5 16
-    //    0 6 | 6 17
-    //    0 7 | 7 18
-    //    0 8 | 8 19
-    //    0 9 | 9 20
-    // Insert Restart Index
-    //    1 0 | 11 22
-    //    1 1 | 12 23
-    //    1 2 | 13 24
-    //    1 3 | 14 25
-
-    // create vector
-
 	terrainShader.bind();
 	terrainPositions.uploadData(positions).bindToAttribute("position");
 	terrainIndices.uploadData(indices.size() * sizeof(uint32_t), indices.data());
 
-
+	std::cout << "Creating textures ..." << std::endl;
 
 	//textures
 	grassTexture = CreateTexture((unsigned char*)grass_jpg, grass_jpg_size);
@@ -218,6 +211,8 @@ bool IsBoxCompletelyBehindPlane(const Eigen::Vector3f& boxMin, const Eigen::Vect
 
 void Viewer::drawContents()
 {
+	std::cout << "Draw Content ..." << std::endl;
+
 	camera().ComputeCameraMatrices(view, proj);
 
 	Eigen::Matrix4f mvp = proj * view;
@@ -236,15 +231,12 @@ void Viewer::drawContents()
 	terrainShader.setUniform("cameraPos", cameraPosition, false);
 
 	/* Task: Render the terrain */
-	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, grassTexture);
-	glUniform1i(terrainShader.uniform("grassTexture"), 0);
-
-	std::cout << terrainShader.uniform("grassTexture");
+	terrainShader.setUniform("grassTexture", 0, false);
 
 	int count = PATCH_SIZE * PATCH_SIZE * 2 + PATCH_SIZE - 2;
 	// FYI: Uncomment if necessary to show wireframe model
-	// glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     glDrawElements(GL_TRIANGLE_STRIP, count, GL_UNSIGNED_INT, 0);
 	
 	//Render text
