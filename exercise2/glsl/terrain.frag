@@ -50,7 +50,7 @@ void main()
 
     //For Oren-Nayar lighting, uncomment the following:
     //Based on: https://stackoverflow.com/questions/40583715/oren-nayar-lighting-in-opengl-how-to-calculate-view-direction-in-fragment-shade#40596525
-	dirToViewer = normalize(vec3(-(gl_FragCoord.xy - screenSize/2) / (screenSize/4), 1.0));
+	//dirToViewer = normalize(vec3(-(gl_FragCoord.xy - screenSize/2) / (screenSize/4), 1.0));
 
 	//material properties
 
@@ -59,13 +59,20 @@ void main()
 
     // Calculate terrain color
 	float slope = acos(normals.z);
-    float blend = (slope - 0.25f) * (1.0f / (0.5f - 0.25f));
+    float blend = (length(slope) - 0.25f) * (1.0f / (0.5f - 0.25f));
     vec4 terrainColor = mix(texture(grassTexture, textureCoordinates), texture(rockTexture, textureCoordinates), blend);
 
-    // Calculate road color
+    // Calculate alpha map
     vec3 alphaMapColor = texture(alphaMap, vertexPosition.xz / 255).xyz;
-    vec3 roadNormals = vec3(texture(roadNormalMap, textureCoordinates).rgb);
-    roadNormals = normalize(roadNormals * 2.0 - 1.0);
+
+    // Calculate road normals. Use the slope (bitangent) and the tangent
+    // given in the normal map to get our normal (by cross product)
+    vec3 tangent = vec3(texture(roadNormalMap, textureCoordinates).rgb);
+    vec3 inverseBitangent = normalize(acos(normals));
+    vec3 bitangent = vec3(inverseBitangent.x, -inverseBitangent.y, inverseBitangent.z);
+    vec3 roadNormals = normalize(cross(tangent, bitangent));
+
+    // Calculate road color
     vec4 roadColor = texture(roadColorTexture, textureCoordinates);
     roadColor = vec4((alphaMapColor * roadColor.xyz), roadColor.w);
 
@@ -76,9 +83,15 @@ void main()
     // Blend color, normals and specular together
     color = mix(terrainColor, roadColor, alphaMapColor.x);
     vec3 blendedNormals = mix(normals, roadNormals, alphaMapColor.x);
-    float blendedSpecular = alphaMapColor.x * 0.3;
+    float blendedSpecular = alphaMapColor.x * roadSpecular;
 
 	//Calculate light
-	color = calculateLighting(color, blendedSpecular, blendedNormals, dirToViewer);
+	color = calculateLighting(vec4(1.0, 1.0, 1.0, 1.0), blendedSpecular, blendedNormals, dirToViewer);
+
+    // Uncomment for specular testing:
+    // color = vec4(blendedSpecular, blendedSpecular, blendedSpecular, blendedSpecular);
+
+    // Uncomment for normal testing:
+    // color = calculateLighting(vec4(1.0, 1.0, 1.0, 1.0), blendedSpecular, blendedNormals, dirToViewer);
 	
 }
