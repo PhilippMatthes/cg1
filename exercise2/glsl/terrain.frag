@@ -10,6 +10,8 @@ uniform vec3 cameraPos;
 
 in vec3 normals;
 
+in vec4 vertexPosition;
+
 uniform sampler2D grassTexture;
 uniform sampler2D rockTexture;
 
@@ -41,22 +43,20 @@ void main()
 
     //For Oren-Nayar lighting, uncomment the following:
     //Based on: https://stackoverflow.com/questions/40583715/oren-nayar-lighting-in-opengl-how-to-calculate-view-direction-in-fragment-shade#40596525
-	//dirToViewer = normalize(vec3(-(gl_FragCoord.xy - screenSize/2) / (screenSize/4), 1.0));
+	dirToViewer = normalize(vec3(-(gl_FragCoord.xy - screenSize/2) / (screenSize/4), 1.0));
 
-	//material properties	
-	//Tast 2.2.3
-	color = texture(grassTexture, gl_FragCoord.xy);
+	//material properties
 
-    // Task 2.2.4
+    // Task 2.2.4 + 2.2.3
     // Based on: http://thedemonthrone.ca/projects/rendering-terrain/rendering-terrain-part-23-height-and-slope-based-colours/
     float slope = acos(normals.z);
-    float blend = (slope - 0.25f) * (1.0f / (0.5f - 0.25f));
+    float blend = (slope - 0.25f) * (1.0f / (0.25f));
 
     // TODO: use appropriately scaledxzcoordinate of the fragment in world space as texture coordinates.
-    color = mix(texture(grassTexture, gl_FragCoord.xy), texture(rockTexture, gl_FragCoord.xy), blend);
+    color = mix(texture(grassTexture, vertexPosition.xz * 10/255), texture(rockTexture, vertexPosition.xz * 10/255), blend);
 
 
-	float specular = 0.3;
+	float specular = 0.0;
 
 	//Calculate light
 	color = calculateLighting(color, specular, normals, dirToViewer);

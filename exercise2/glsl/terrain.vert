@@ -7,6 +7,7 @@
 in vec4 position;
 
 out vec3 normals;
+out vec4 vertexPosition;
 
 uniform mat4 mvp;
 
@@ -18,6 +19,8 @@ vec3 calculateNormals(vec2 p);
 void main()
 {
     normals = calculateNormals(position.xz);
+
+    vertexPosition = position;
 
     float terrainHeight = getTerrainHeight(position.xz);
     vec4 heightCorrectedPosition = vec4(position.x, position.y + terrainHeight, position.z, position.w);

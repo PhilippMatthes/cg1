@@ -210,8 +210,6 @@ bool IsBoxCompletelyBehindPlane(const Eigen::Vector3f& boxMin, const Eigen::Vect
 
 void Viewer::drawContents()
 {
-	std::cout << "Draw Content ..." << std::endl;
-
 	camera().ComputeCameraMatrices(view, proj);
 
 	Eigen::Matrix4f mvp = proj * view;
