@@ -11,6 +11,7 @@ uniform vec3 cameraPos;
 in vec3 normals;
 
 uniform sampler2D grassTexture;
+uniform sampler2D rockTexture;
 
 uniform sampler2D background;
 
@@ -43,13 +44,21 @@ void main()
 	//dirToViewer = normalize(vec3(-(gl_FragCoord.xy - screenSize/2) / (screenSize/4), 1.0));
 
 	//material properties	
+	//Tast 2.2.3
 	color = texture(grassTexture, gl_FragCoord.xy);
+
+    // Task 2.2.4
+    // Based on: http://thedemonthrone.ca/projects/rendering-terrain/rendering-terrain-part-23-height-and-slope-based-colours/
+    float slope = acos(normals.z);
+    float blend = (slope - 0.25f) * (1.0f / (0.5f - 0.25f));
+
+    // TODO: use appropriately scaledxzcoordinate of the fragment in world space as texture coordinates.
+    color = mix(texture(grassTexture, gl_FragCoord.xy), texture(rockTexture, gl_FragCoord.xy), blend);
+
+
 	float specular = 0.3;
-
-
 
 	//Calculate light
 	color = calculateLighting(color, specular, normals, dirToViewer);
-
 	
 }

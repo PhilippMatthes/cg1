@@ -74,7 +74,6 @@ GLuint CreateTexture(const unsigned char* fileData, size_t fileLength, bool repe
 	// & https://github.com/NSchertler/CG1/
 	GLuint tex;
 	glGenTextures(1, &tex);
-	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, tex);
 
     if (repeat) {
@@ -84,8 +83,8 @@ GLuint CreateTexture(const unsigned char* fileData, size_t fileLength, bool repe
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
     }
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, tex, 0);
 
@@ -231,8 +230,13 @@ void Viewer::drawContents()
 	terrainShader.setUniform("cameraPos", cameraPosition, false);
 
 	/* Task: Render the terrain */
+	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, grassTexture);
 	terrainShader.setUniform("grassTexture", 0, false);
+
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D, rockTexture);
+	terrainShader.setUniform("rockTexture", 1, false);
 
 	int count = PATCH_SIZE * PATCH_SIZE * 2 + PATCH_SIZE - 2;
 	// FYI: Uncomment if necessary to show wireframe model
