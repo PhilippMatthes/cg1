@@ -226,7 +226,8 @@ void Viewer::drawContents()
 	// Task 2.2.5 b)
 	Eigen::Matrix4f mvp = proj * view;
 	Eigen::Vector3f cameraPosition = view.inverse().col(3).head<3>();
-	// IMHO, C++ sucks... I had to literally search 30 minutes for this crap.
+	// IMHO, C++ is so inconvenient...
+	// I had to literally search 30 minutes for this.
 	// In other languages, such as Swift, Kotlin, Python, Java...
 	// you'd just initialize an Array and propagate data
 	// through it. Why would you ever handle
@@ -234,24 +235,54 @@ void Viewer::drawContents()
 	// This just wastes time (and money) and
 	// is prone to error.
     auto *frustumPlanes = new Eigen::Vector4f[6];
+    // The bounding box is axis-aligned
+    // Example image: https://dz13w8afd47il.cloudfront.net/graphics/9781787123663/graphics/B05887_7_5.jpg
 	nse::math::BoundingBox<float, 3> boundingBox;
 
 	// Calculate view frustum planes
 	CalculateViewFrustum(mvp, frustumPlanes, boundingBox);
 
-	// TODO:
-	// For each patch in the bounding box:
-	// check, if the bounding box of this patch
-	// lies completely behind the view frustum
-	// bounding box. If so, don't render it.
-	// If it lies within, add the patch offset to
-	// offsets (with offsets.emplace_back(..., ...))
+	// Create all patches intersecting with the bounding box
+	// and check, if they are visible. If so, add them to the
+	// offsets vector and increment visiblePatches.
+	int minX = (int) boundingBox.min[0];
+    int minY = 0;
+    int minZ = (int) boundingBox.min[2];
+    int maxX = (int) boundingBox.max[0];
+    int maxY = 15;
+    int maxZ = (int) boundingBox.max[2];
+
+    int clampedMinX = minX - (minX % PATCH_SIZE);
+    int clampedMinZ = minZ - (minZ % PATCH_SIZE);
+    int clampedMaxX = maxX - (maxX % PATCH_SIZE);
+    int clampedMaxZ = maxZ - (maxZ % PATCH_SIZE);
+
     int visiblePatches = 0;
     std::vector<Eigen::Vector2f> offsets;
 
+    for (int x = clampedMinX; x <= clampedMaxX; x += PATCH_SIZE) {
+        for (int z = clampedMinZ; z <= clampedMaxZ; z += PATCH_SIZE) {
+            nse::math::BoundingBox<float, 3> patchBox (
+                Eigen::Matrix<float, 3, 1> ((float) x, (float) minY, (float) z),
+                Eigen::Matrix<float, 3, 1> ((float) (x + PATCH_SIZE), (float) maxY, (float) (z + PATCH_SIZE))
+            );
+
+            bool isBehind = false;
+            for (int p = 0; p < 6; p += 1) {
+                if (IsBoxCompletelyBehindPlane(patchBox.min, patchBox.max, frustumPlanes[p])) {
+                    isBehind = true;
+                    break;
+                }
+            }
+            if (!isBehind) {
+                offsets.emplace_back((float) x + ((float) PATCH_SIZE / 2), (float) z + ((float) PATCH_SIZE / 2));
+                visiblePatches += 1;
+            }
+        }
+    }
 
     offsetBuffer.uploadData(offsets);
-	bool isBoxCompletelyBehindPlane = IsBoxCompletelyBehindPlane(boundingBox.min, boundingBox.max, plane);
+	// bool isBoxCompletelyBehindPlane = IsBoxCompletelyBehindPlane(boundingBox.min, boundingBox.max, plane);
 
 	RenderSky();
 	
@@ -263,6 +294,7 @@ void Viewer::drawContents()
 	terrainShader.setUniform("screenSize", Eigen::Vector2f(width(), height()), false);
 	terrainShader.setUniform("mvp", mvp);
 	terrainShader.setUniform("cameraPos", cameraPosition, false);
+	terrainShader.setUniform("viewMatrix", view, false);
 
 
 	/* Task: Render the terrain */
@@ -289,6 +321,10 @@ void Viewer::drawContents()
 	glActiveTexture(GL_TEXTURE5);
 	glBindTexture(GL_TEXTURE_2D, roadNormalMap);
 	terrainShader.setUniform("roadNormalMap", 5, false);
+
+	glActiveTexture(GL_TEXTURE6);
+	glBindTexture(GL_TEXTURE_2D, backgroundTexture);
+	terrainShader.setUniform("background", 6, false);
 
 	int count = PATCH_SIZE * PATCH_SIZE * 2 + PATCH_SIZE - 2;
 	count = count * visiblePatches;

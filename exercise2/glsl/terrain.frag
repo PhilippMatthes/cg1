@@ -12,6 +12,8 @@ in vec3 normals;
 
 in vec4 vertexPosition;
 
+in float fogVisibility;
+
 uniform sampler2D grassTexture;
 uniform sampler2D rockTexture;
 uniform sampler2D roadColorTexture;
@@ -45,12 +47,11 @@ void main()
 	//surface geometry
 	vec3 dirToViewer = vec3(0, 1, 0);
 
-    // TODO: use appropriately scaledxzcoordinate of the fragment in world space as texture coordinates.
 	vec2 textureCoordinates = vertexPosition.xz * 10/255;
 
     //For Oren-Nayar lighting, uncomment the following:
     //Based on: https://stackoverflow.com/questions/40583715/oren-nayar-lighting-in-opengl-how-to-calculate-view-direction-in-fragment-shade#40596525
-	//dirToViewer = normalize(vec3(-(gl_FragCoord.xy - screenSize/2) / (screenSize/4), 1.0));
+	dirToViewer = normalize(vec3(-(gl_FragCoord.xy - screenSize/2) / (screenSize/4), 1.0));
 
 	//material properties
 
@@ -85,8 +86,11 @@ void main()
     vec3 blendedNormals = mix(normals, roadNormals, alphaMapColor.x);
     float blendedSpecular = alphaMapColor.x * roadSpecular;
 
-	//Calculate light
+	// Calculate light
 	color = calculateLighting(color, blendedSpecular, blendedNormals, dirToViewer);
+
+	// Calculate fog
+	color = mix(color, getBackgroundColor(), fogVisibility);
 
     // Uncomment for specular testing:
     // color = vec4(blendedSpecular, blendedSpecular, blendedSpecular, blendedSpecular);
