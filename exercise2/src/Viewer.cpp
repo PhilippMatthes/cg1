@@ -245,6 +245,10 @@ void Viewer::drawContents()
 	terrainShader.setUniform("screenSize", Eigen::Vector2f(width(), height()), false);
 	terrainShader.setUniform("mvp", mvp);
 	terrainShader.setUniform("cameraPos", cameraPosition, false);
+	terrainShader.setUniform("showNormalMappingOnly", 0, false);
+	terrainShader.setUniform("showSpecularLightingOnly", 0, false);
+	terrainShader.setUniform("useNormalMap", 1, false);
+
 
 	/* Task: Render the terrain */
 	glActiveTexture(GL_TEXTURE0);

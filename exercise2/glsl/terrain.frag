@@ -4,13 +4,10 @@
 
 #version 330
 
-out vec4 color;
-
-uniform vec3 cameraPos;
-
 in vec3 normals;
-
 in vec4 vertexPosition;
+
+out vec4 color;
 
 uniform sampler2D grassTexture;
 uniform sampler2D rockTexture;
@@ -20,8 +17,12 @@ uniform sampler2D roadSpecularMap;
 uniform sampler2D roadNormalMap;
 
 uniform sampler2D background;
-
+uniform vec3 cameraPos;
 uniform vec2 screenSize;
+
+uniform bool showNormalMappingOnly;
+uniform bool showSpecularLightingOnly;
+uniform bool useNormalMap;
 
 const vec3 dirToLight = normalize(vec3(1, 3, 1));	
 
@@ -114,13 +115,10 @@ void main()
     vec3 blendedNormals = mix(normals, n, alphaMapColor.x);
     float blendedSpecular = alphaMapColor.x * roadSpecular;
 
-	//Calculate light
-	color = calculateLighting(color, blendedSpecular, blendedNormals, dirToViewer);
-
-    // Uncomment for specular testing:
-    // color = vec4(blendedSpecular, blendedSpecular, blendedSpecular, blendedSpecular);
-
-    // Uncomment for normal testing:
-    //color = calculateLighting(vec4(1.0, 1.0, 1.0, 1.0), blendedSpecular, blendedNormals, dirToViewer);
-	
+    if(showSpecularLightingOnly)
+         color = vec4(blendedSpecular, blendedSpecular, blendedSpecular, blendedSpecular);
+    else if (showNormalMappingOnly)
+        color = calculateLighting(vec4(1.0, 1.0, 1.0, 1.0), blendedSpecular, blendedNormals, dirToViewer);
+    else
+        color = calculateLighting(color, blendedSpecular, blendedNormals, dirToViewer);
 }
