@@ -113,9 +113,17 @@ void Viewer::CreateGeometry()
 	
 	std::vector<Eigen::Vector4f> positions;
 	std::vector<uint32_t> indices;
-	
-	/*Generate positions and indices for a terrain patch with a
-	  single triangle strip */
+
+    // Task 2.2.5 a)
+    // See: https://tu-dresden.de/ing/informatik/smt/cgv/ressourcen/dateien/lehre/ws-18-19/cg1/CGI_03_Geometry.pdf?lang=de
+    offsetBuffer.bind();
+    GLuint offset = static_cast<GLuint>(terrainShader.attrib("offset"));
+    glEnableVertexAttribArray(offset);
+    glVertexAttribPointer(offset, 2, GL_FLOAT, GL_FALSE, 0, 0);
+    glVertexAttribDivisor(offset, 1);
+
+    /*Generate positions and indices for a terrain patch with a
+      single triangle strip */
 
     // Source: https://tu-dresden.de/ing/informatik/smt/cgv/ressourcen/dateien/lehre/ws-18-19/cg1/CGI_03_Geometry.pdf?lang=en
 
@@ -216,7 +224,16 @@ void Viewer::drawContents()
 
 	Eigen::Matrix4f mvp = proj * view;
 	Eigen::Vector3f cameraPosition = view.inverse().col(3).head<3>();
-	int visiblePatches = 0;
+	auto *frustumPlanes = new Eigen::Vector4f[6];
+	nse::math::BoundingBox<float, 3> boundingBox;
+	int visiblePatches = 1;
+
+	// Calculate view frustum planes
+	CalculateViewFrustum(mvp, frustumPlanes, boundingBox);
+
+	std::vector<Eigen::Vector2f> offsets;
+	offsets.push_back(Eigen::Vector2f(0,0));
+	offsetBuffer.uploadData(offsets);
 
 	RenderSky();
 	
@@ -257,9 +274,11 @@ void Viewer::drawContents()
 	int count = PATCH_SIZE * PATCH_SIZE * 2 + PATCH_SIZE - 2;
 	// FYI: Uncomment if necessary to show wireframe model
 	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-    glDrawElements(GL_TRIANGLE_STRIP, count, GL_UNSIGNED_INT, 0);
-	
-	//Render text
+    //glDrawElements(GL_TRIANGLE_STRIP, count, GL_UNSIGNED_INT, 0);
+    glDrawElementsInstanced(GL_TRIANGLE_STRIP, count, GL_UNSIGNED_INT, 0, 1);
+
+
+    //Render text
 	nvgBeginFrame(mNVGContext, width(), height(), mPixelRatio);
 	std::string text = "Patches visible: " + std::to_string(visiblePatches);
 	nvgText(mNVGContext, 10, 20, text.c_str(), nullptr);

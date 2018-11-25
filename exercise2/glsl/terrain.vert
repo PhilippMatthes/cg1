@@ -8,6 +8,7 @@ in vec4 position;
 
 out vec3 normals;
 out vec4 vertexPosition;
+in vec2 offset;
 
 uniform mat4 mvp;
 
@@ -18,12 +19,14 @@ vec3 calculateNormals(vec2 p);
 
 void main()
 {
-    normals = calculateNormals(position.xz);
+    vec4 offsetPosition = vec4(position.x + offset.x, position.y, position.z + offset.y, position.w);
 
-    vertexPosition = position;
+    normals = calculateNormals(offsetPosition.xz);
 
-    float terrainHeight = getTerrainHeight(position.xz);
-    vec4 heightCorrectedPosition = vec4(position.x, position.y + terrainHeight, position.z, position.w);
+    vertexPosition = offsetPosition;
+
+    float terrainHeight = getTerrainHeight(offsetPosition.xz);
+    vec4 heightCorrectedPosition = vec4(offsetPosition.x, offsetPosition.y + terrainHeight, offsetPosition.z, offsetPosition.w);
 	gl_Position = mvp * heightCorrectedPosition;
 }
 
