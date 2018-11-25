@@ -45,12 +45,11 @@ void main()
 	//surface geometry
 	vec3 dirToViewer = vec3(0, 1, 0);
 
-    // TODO: use appropriately scaledxzcoordinate of the fragment in world space as texture coordinates.
 	vec2 textureCoordinates = vertexPosition.xz * 10/255;
 
     //For Oren-Nayar lighting, uncomment the following:
     //Based on: https://stackoverflow.com/questions/40583715/oren-nayar-lighting-in-opengl-how-to-calculate-view-direction-in-fragment-shade#40596525
-	//dirToViewer = normalize(vec3(-(gl_FragCoord.xy - screenSize/2) / (screenSize/4), 1.0));
+	dirToViewer = normalize(vec3(-(gl_FragCoord.xy - screenSize/2) / (screenSize/4), 1.0));
 
 	//material properties
 
@@ -65,12 +64,37 @@ void main()
     // Calculate alpha map
     vec3 alphaMapColor = texture(alphaMap, vertexPosition.xz / 255).xyz;
 
+    //Calculation of tangent and bitangent in fragment shader, as explained in the lecture:
+    // https://tu-dresden.de/ing/informatik/smt/cgv/ressourcen/dateien/lehre/ws-18-19/cg1/CGI_05_Texturing.pdf?lang=de
+    // also based on: http://www.opengl-tutorial.org/intermediate-tutorials/tutorial-13-normal-mapping/
+    // https://stackoverflow.com/questions/5255806/how-to-calculate-tangent-and-binormal
+    // http://www.terathon.com/code/tangent.html
+    // https://learnopengl.com/Advanced-Lighting/Normal-Mapping
+
+    // derivations of the fragment position
+    vec3 pos_dx = dFdx( gl_FragCoord ).xyz;
+    vec3 pos_dy = dFdy( gl_FragCoord ).xyz;
+    // derivations of the texture coordinate
+    vec2 texC_dx = dFdx( textureCoordinates );
+    vec2 texC_dy = dFdy( textureCoordinates );
+    // tangent vector and binormal vector
+    vec3 t = texC_dy.y * pos_dx - texC_dx.y * pos_dy;
+    vec3 b = texC_dy.x * pos_dx - texC_dx.x * pos_dy; // sign inversion
+
+    t = cross( cross( normals, t ), t ); // orthonormalization of the tangent vector
+    b = cross( b, cross( b, normals ) ); // orthonormalization of the binormal vectors to the normal vector
+
+    mat3 tbn = mat3( normalize(t), normalize(b), normals ); //transformation matrix from world space to tangent space, hast tangent, bitangent and normal as base vectors
+
+    mat3 inverseTBN = transpose(tbn); //as mentioned in the lecture the transpose is equivalent to the inverse matrix 'cause tangents, bitangents and normal beeing perpendicular
+    // Thus giving us the transformation matrix which can be used to transform from tangent space to world space
+
     // Calculate road normals. Use the slope (bitangent) and the tangent
     // given in the normal map to get our normal (by cross product)
-    vec3 tangent = vec3(texture(roadNormalMap, textureCoordinates).rgb);
-    vec3 inverseBitangent = normalize(acos(normals));
-    vec3 bitangent = vec3(inverseBitangent.x, -inverseBitangent.y, inverseBitangent.z);
-    vec3 roadNormals = normalize(cross(tangent, bitangent));
+    vec3 normalInTangentSpace = vec3(texture(roadNormalMap, textureCoordinates).rgb); //get normal in tangent space from normal map
+    normalInTangentSpace = vec3(normalInTangentSpace.x, -normalInTangentSpace.y, normalInTangentSpace.z);
+    normalInTangentSpace = normalize(normalInTangentSpace * 2.0 - 1.0); //transform the vector to clamp values from [-1,1] to [0,1]
+    vec3 roadNormals = normalize(tbn * normalInTangentSpace); //transform normal from tangent space to world space
 
     // Calculate road color
     vec4 roadColor = texture(roadColorTexture, textureCoordinates);
@@ -92,6 +116,6 @@ void main()
     // color = vec4(blendedSpecular, blendedSpecular, blendedSpecular, blendedSpecular);
 
     // Uncomment for normal testing:
-    // color = calculateLighting(vec4(1.0, 1.0, 1.0, 1.0), blendedSpecular, blendedNormals, dirToViewer);
+    //color = calculateLighting(vec4(1.0, 1.0, 1.0, 1.0), blendedSpecular, blendedNormals, dirToViewer);
 	
 }
