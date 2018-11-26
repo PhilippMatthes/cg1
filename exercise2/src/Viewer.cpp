@@ -336,8 +336,7 @@ void Viewer::drawContents()
 	glClearDepth(1);
 	glEnable(GL_DEPTH_TEST);
 
-	int count = PATCH_SIZE * PATCH_SIZE * 2 + PATCH_SIZE - 2;
-	count = count * visiblePatches;
+	int count = PATCH_SIZE * PATCH_SIZE * 2 + PATCH_SIZE * 3;
 	// FYI: Uncomment if necessary to show wireframe model
 	glDrawElementsInstanced(GL_TRIANGLE_STRIP, count, GL_UNSIGNED_INT, 0, visiblePatches);
 	
