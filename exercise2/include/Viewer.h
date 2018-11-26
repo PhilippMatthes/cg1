@@ -26,6 +26,11 @@ private:
 
 	Eigen::Matrix4f view, proj;
 
+	nanogui::CheckBox* chkShowNormalMappingOnly;
+	nanogui::CheckBox* chkShowSpecularLightingOnly;
+	nanogui::CheckBox* chkUseNormalMap;
+	nanogui::CheckBox* chkShowFog;
+
 	nse::gui::GLShader skyShader;
 	nse::gui::GLVertexArray emptyVAO;
 
