@@ -248,7 +248,7 @@ void Viewer::drawContents()
 	terrainShader.setUniform("showNormalMappingOnly", 0, false);
 	terrainShader.setUniform("showSpecularLightingOnly", 0, false);
 	terrainShader.setUniform("useNormalMap", 1, false);
-
+	terrainShader.setUniform("showFog", 1, false);
 
 	/* Task: Render the terrain */
 	glActiveTexture(GL_TEXTURE0);
@@ -274,6 +274,13 @@ void Viewer::drawContents()
 	glActiveTexture(GL_TEXTURE5);
 	glBindTexture(GL_TEXTURE_2D, roadNormalMap);
 	terrainShader.setUniform("roadNormalMap", 5, false);
+
+	glActiveTexture(GL_TEXTURE6);
+	glBindTexture(GL_TEXTURE_2D, backgroundTexture);
+	terrainShader.setUniform("background", 6, false);
+
+	glClearDepth(1);
+	glEnable(GL_DEPTH_TEST);
 
 	int count = PATCH_SIZE * PATCH_SIZE * 2 + PATCH_SIZE - 2;
 	// FYI: Uncomment if necessary to show wireframe model

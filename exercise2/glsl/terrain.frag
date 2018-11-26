@@ -23,8 +23,11 @@ uniform vec2 screenSize;
 uniform bool showNormalMappingOnly;
 uniform bool showSpecularLightingOnly;
 uniform bool useNormalMap;
+uniform bool showFog;
 
-const vec3 dirToLight = normalize(vec3(1, 3, 1));	
+const vec3 dirToLight = normalize(vec3(1, 3, 1));
+const float FogDensity = 0.005;
+const vec3 fogColor = vec3(0.5, 0.5,0.5);
 
 //Calculates the visible surface color based on the Blinn-Phong illumination model
 vec4 calculateLighting(vec4 materialColor, float specularIntensity, vec3 normalizedNormal, vec3 directionToViewer)
@@ -39,6 +42,14 @@ vec4 calculateLighting(vec4 materialColor, float specularIntensity, vec3 normali
 vec4 getBackgroundColor()
 {
 	return texture(background, gl_FragCoord.xy / screenSize);
+}
+
+float getFogFactor()
+{
+    float dist = gl_FragCoord.z / gl_FragCoord.w;
+    float fogFactor = 1.0 /exp( (dist * FogDensity)* (dist * FogDensity));
+    fogFactor = clamp( fogFactor, 0.0, 1.0 );
+    return fogFactor;
 }
 
 //Based on: https://github.com/NSchertler/CG1/blob/master/glsl/texturedMesh.frag
@@ -119,6 +130,10 @@ void main()
          color = vec4(blendedSpecular, blendedSpecular, blendedSpecular, blendedSpecular);
     else if (showNormalMappingOnly)
         color = calculateLighting(vec4(1.0, 1.0, 1.0, 1.0), blendedSpecular, blendedNormals, dirToViewer);
+    else if(showFog){
+        color = calculateLighting(color, blendedSpecular, blendedNormals, dirToViewer);
+        color = mix(vec4(fogColor, 1), color, getFogFactor());
+    }
     else
         color = calculateLighting(color, blendedSpecular, blendedNormals, dirToViewer);
 }
