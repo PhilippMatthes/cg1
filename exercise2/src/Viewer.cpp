@@ -26,6 +26,8 @@ Viewer::Viewer()
 { 
 	LoadShaders();
 	CreateGeometry();
+
+	animation = 0.0;
 	
 	//Create a texture and framebuffer for the background
 	glGenFramebuffers(1, &backgroundFBO);	
@@ -33,22 +35,11 @@ Viewer::Viewer()
 
 	auto mainWindow = SetupMainWindow();
 
-	chkShowNormalMappingOnly = new nanogui::CheckBox(mainWindow, "Show normal mapping only");
-	chkShowNormalMappingOnly->setChecked(false);
-
-	chkShowSpecularLightingOnly = new nanogui::CheckBox(mainWindow, "Show specular lighting only");
-	chkShowSpecularLightingOnly->setChecked(false);
-
-	chkShowFog = new nanogui::CheckBox(mainWindow, "Show fog");
-	chkShowFog->setChecked(true);
-
-	chkUseNormalMap = new nanogui::CheckBox(mainWindow, "Use normal map");
-	chkUseNormalMap->setChecked(true);
-
 	sldPerlin1Frequency = nse::gui::AddLabeledSliderWithDefaultDisplay(mainWindow, "Perlin 1 Frequency", std::make_pair(0.001f, 0.05f), 0.02f, 2);
 	sldPerlin2Frequency = nse::gui::AddLabeledSliderWithDefaultDisplay(mainWindow, "Perlin 2 Frequency", std::make_pair(0.001f, 0.05f), 0.005f, 2);
 	sldPerlin1Height = nse::gui::AddLabeledSliderWithDefaultDisplay(mainWindow, "Perlin 1 Height", std::make_pair(0.0f, 4.0f), 1.0f, 2);
 	sldPerlin2Height = nse::gui::AddLabeledSliderWithDefaultDisplay(mainWindow, "Perlin 2 Height", std::make_pair(0.0f, 4.0f), 2.0f, 2);
+    sldWaterHeight = nse::gui::AddLabeledSliderWithDefaultDisplay(mainWindow, "Water Height", std::make_pair(0.0f, 10.0f), 4.0f, 2);
 
 	performLayout();
 
@@ -80,6 +71,58 @@ void Viewer::LoadShaders()
 {
 	skyShader.init("Sky Shader", std::string((const char*)sky_vert, sky_vert_size), std::string((const char*)sky_frag, sky_frag_size));
 	terrainShader.init("Terrain Shader", std::string((const char*)terrain_vert, terrain_vert_size), std::string((const char*)terrain_frag, terrain_frag_size));
+}
+
+unsigned int loadCubemap()
+{
+
+    std::vector<unsigned char*> faces =
+        {
+            right_jpg,
+            left_jpg,
+            top_jpg,
+            bottom_jpg,
+            front_jpg,
+            back_jpg
+        };
+
+    std::vector<size_t> sizes = {
+        right_jpg_size,
+        left_jpg_size,
+        top_jpg_size,
+        bottom_jpg_size,
+        front_jpg_size,
+        back_jpg_size
+    };
+
+    unsigned int textureID;
+    glGenTextures(1, &textureID);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, textureID);
+
+    for (unsigned int i = 0; i < faces.size(); i++)
+    {
+        int textureWidth, textureHeight, textureChannels;
+        auto data = stbi_load_from_memory(faces[i], sizes[i], &textureWidth, &textureHeight, &textureChannels, 3);
+        if (data)
+        {
+            glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i,
+                         0, GL_RGB, textureWidth, textureHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, data
+            );
+            stbi_image_free(data);
+        }
+        else
+        {
+            std::cout << "Cubemap texture failed to load at path: " << faces[i] << std::endl;
+            stbi_image_free(data);
+        }
+    }
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+
+    return textureID;
 }
 
 GLuint CreateTexture(const unsigned char* fileData, size_t fileLength, bool repeat = true)
@@ -180,6 +223,8 @@ void Viewer::CreateGeometry()
 	roadNormalMap = CreateTexture((unsigned char*)roadnormals_jpg, roadnormals_jpg_size);
 	roadSpecularMap = CreateTexture((unsigned char*)roadspecular_jpg, roadspecular_jpg_size);
 
+    skybox = loadCubemap();
+
 	// Road texture should not repeat itself
 	alphaMap = CreateTexture((unsigned char*)alpha_jpg, alpha_jpg_size, false);
 }
@@ -243,6 +288,9 @@ void Viewer::drawContents()
 {
 	camera().ComputeCameraMatrices(view, proj);
 
+
+	animation += 0.03;
+
 	// Task 2.2.5 b)
 	Eigen::Matrix4f mvp = proj * view;
 	Eigen::Vector3f cameraPosition = view.inverse().col(3).head<3>();
@@ -303,15 +351,14 @@ void Viewer::drawContents()
 	terrainShader.setUniform("screenSize", Eigen::Vector2f(width(), height()), false);
 	terrainShader.setUniform("mvp", mvp);
 	terrainShader.setUniform("cameraPos", cameraPosition, false);
-	terrainShader.setUniform("showNormalMappingOnly", static_cast<int>(chkShowNormalMappingOnly->checked()), false);
-	terrainShader.setUniform("showSpecularLightingOnly", static_cast<int>(chkShowSpecularLightingOnly->checked()), false);
-	terrainShader.setUniform("useNormalMap", static_cast<int>(chkUseNormalMap->checked()), false);
-	terrainShader.setUniform("showFog", static_cast<int>(chkShowFog->checked()), false);
+
+    terrainShader.setUniform("animation", animation, false);
 
 	terrainShader.setUniform("perlinNoise1Frequency", sldPerlin1Frequency->value(), false);
 	terrainShader.setUniform("perlinNoise2Frequency", sldPerlin2Frequency->value(), false);
 	terrainShader.setUniform("perlinNoise1Height", sldPerlin1Height->value(), false);
 	terrainShader.setUniform("perlinNoise2Height", sldPerlin2Height->value(), false);
+    terrainShader.setUniform("waterHeight", sldWaterHeight->value(), false);
 
 	/* Task: Render the terrain */
 	glActiveTexture(GL_TEXTURE0);
@@ -341,6 +388,10 @@ void Viewer::drawContents()
 	glActiveTexture(GL_TEXTURE6);
 	glBindTexture(GL_TEXTURE_2D, backgroundTexture);
 	terrainShader.setUniform("background", 6, false);
+
+	glActiveTexture(GL_TEXTURE7);
+	glBindTexture(GL_TEXTURE_CUBE_MAP, skybox);
+	terrainShader.setUniform("skybox", skybox);
 
 
 	glClearDepth(1);

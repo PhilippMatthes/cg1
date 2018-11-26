@@ -16,14 +16,14 @@ uniform sampler2D alphaMap;
 uniform sampler2D roadSpecularMap;
 uniform sampler2D roadNormalMap;
 
+uniform samplerCube skybox;
+
 uniform sampler2D background;
 uniform vec3 cameraPos;
 uniform vec2 screenSize;
 
-uniform bool showNormalMappingOnly;
-uniform bool showSpecularLightingOnly;
-uniform bool useNormalMap;
-uniform bool showFog;
+uniform float waterHeight;
+in float waterFactor;
 
 const vec3 dirToLight = normalize(vec3(1, 3, 1));
 const float FogDensity = 0.006;
@@ -37,6 +37,13 @@ vec4 calculateLighting(vec4 materialColor, float specularIntensity, vec3 normali
 	color.xyz *= 0.9 * max(dot(normalizedNormal, dirToLight), 0) + 0.1;
 	color.xyz += specularIntensity * pow(max(dot(h, normalizedNormal), 0), 50);
 	return color;
+}
+
+vec4 getReflectionColor() {
+    // https://darrensweeney.net/2015/12/17/opengl-skybox-rendering/
+    vec3 I = normalize(vertexPosition.xyz - cameraPos);
+    vec3 R = reflect(I, normalize(normals));
+    return texture(skybox, -R);
 }
 
 vec4 getBackgroundColor()
@@ -76,21 +83,12 @@ void calculateTangentSpace( vec3 N, vec3 p, vec2 uv, out mat3 tangentSpaceToView
     viewSpaceToTangentSpace = transpose(mat3( T, B, N ));
 }
 
-void main()
-{
-    vec3 fragmentPosition = vertexPosition.xyz;
-	vec2 textureCoordinates = vertexPosition.xz * 10/255;
+vec4 terrainColor(vec3 fragmentPosition, vec3 dirToLight) {
+    vec2 textureCoordinates = vertexPosition.xz * 10/255;
 	vec3 n = normalize(normals);
 
 	mat3 tangentSpaceToViewSpace, viewSpaceToTangentSpace;
 	calculateTangentSpace(n, fragmentPosition, textureCoordinates, tangentSpaceToViewSpace, viewSpaceToTangentSpace);
-
-    //surface geometry
-    //For Oren-Nayar lighting, uncomment the following:
-    //Based on: https://stackoverflow.com/questions/40583715/oren-nayar-lighting-in-opengl-how-to-calculate-view-direction-in-fragment-shade#40596525
-    //vec3 dirToViewer = vec3(0, 1, 0);
-	//vec3 dirToViewer = normalize(vec3(-(gl_FragCoord.xy - screenSize/2) / (screenSize/4), 1.0));
-    vec3 dirToViewer = normalize(-fragmentPosition); //viewer is at the origin in camera space
 
 	//material properties
     // Task 2.2.4 + 2.2.3
@@ -106,34 +104,41 @@ void main()
     vec4 roadColor = texture(roadColorTexture, textureCoordinates);
     roadColor = vec4((alphaMapColor * roadColor.xyz), roadColor.w);
 
-    if(useNormalMap) {
-        vec3 mapNormal = texture(roadNormalMap, textureCoordinates).xyz * 2 - 1;
-        mapNormal.y *= -1;
-        tangentSpaceToViewSpace[0] = normalize(tangentSpaceToViewSpace[0]);
-        tangentSpaceToViewSpace[1] = normalize(tangentSpaceToViewSpace[1]);
-        n = normalize(tangentSpaceToViewSpace * mapNormal);
-    }
+    vec3 mapNormal = texture(roadNormalMap, textureCoordinates).xyz * 2 - 1;
+    mapNormal.y *= -1;
+    tangentSpaceToViewSpace[0] = normalize(tangentSpaceToViewSpace[0]);
+    tangentSpaceToViewSpace[1] = normalize(tangentSpaceToViewSpace[1]);
+    n = normalize(tangentSpaceToViewSpace * mapNormal);
 
     // Calculate road specular
     vec3 specularVector = vec3(texture(roadSpecularMap, textureCoordinates));
     float roadSpecular = specularVector.x;
 
     // Blend color, normals and specular together
-    color = mix(terrainColor, roadColor, alphaMapColor.x);
+    vec4 color = mix(terrainColor, roadColor, alphaMapColor.x);
     vec3 blendedNormals = mix(normals, n, alphaMapColor.x);
     float blendedSpecular = alphaMapColor.x * roadSpecular;
+    color = calculateLighting(color, blendedSpecular, blendedNormals, dirToLight);
 
-    if(showSpecularLightingOnly) {
-        color = vec4(blendedSpecular, blendedSpecular, blendedSpecular, blendedSpecular);
-        return;
-    }
-    if (showNormalMappingOnly) {
-        color = calculateLighting(vec4(1.0, 1.0, 1.0, 1.0), blendedSpecular, blendedNormals, dirToViewer);
-        return;
-    }
-    color = calculateLighting(color, blendedSpecular, blendedNormals, dirToViewer);
-    if(showFog){
-        color = mix(getBackgroundColor(), color, getFogFactor());
-    }
+    return mix(getBackgroundColor(), color, getFogFactor());
+}
 
+vec4 waterColor(vec3 fragmentPosition, vec3 dirToLight) {
+    float specular = 1.0;
+    vec4 colorMaterial = vec4(24.0/255.0, 48.0/255.0, 124.0/255.0, 1.0);
+    vec4 colorReflection = mix(colorMaterial, getReflectionColor(), 0.5);
+    vec4 colorLighting = calculateLighting(colorReflection, specular, normals, dirToLight);
+    return mix(getBackgroundColor(), colorLighting, getFogFactor());
+}
+
+void main()
+{
+    vec3 fragmentPosition = vertexPosition.xyz;
+    //surface geometry
+        //For Oren-Nayar lighting, uncomment the following:
+        //Based on: https://stackoverflow.com/questions/40583715/oren-nayar-lighting-in-opengl-how-to-calculate-view-direction-in-fragment-shade#40596525
+        vec3 dirToLight = vec3(1, 1, 0);
+    	// vec3 dirToViewer = normalize(vec3(-(gl_FragCoord.xy - screenSize/2) / (screenSize/4), 1.0));
+        // vec3 dirToViewer = normalize(-fragmentPosition); //viewer is at the origin in camera space
+    color = mix(waterColor(fragmentPosition, dirToLight), terrainColor(fragmentPosition, dirToLight), waterFactor);
 }

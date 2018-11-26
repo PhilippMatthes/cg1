@@ -26,15 +26,13 @@ private:
 
 	Eigen::Matrix4f view, proj;
 
-	nanogui::CheckBox* chkShowNormalMappingOnly;
-	nanogui::CheckBox* chkShowSpecularLightingOnly;
-	nanogui::CheckBox* chkUseNormalMap;
-	nanogui::CheckBox* chkShowFog;
-
 	nanogui::Slider* sldPerlin1Height;
 	nanogui::Slider* sldPerlin2Height;
 	nanogui::Slider* sldPerlin1Frequency;
 	nanogui::Slider* sldPerlin2Frequency;
+	nanogui::Slider* sldWaterHeight;
+
+	float animation;
 
 	nse::gui::GLShader skyShader;
 	nse::gui::GLVertexArray emptyVAO;
@@ -46,7 +44,7 @@ private:
 
 	nse::gui::GLVertexArray grassVAO;
 
-	GLuint grassTexture, rockTexture, roadColorTexture, roadNormalMap, roadSpecularMap, alphaMap;
+	GLuint grassTexture, rockTexture, roadColorTexture, roadNormalMap, roadSpecularMap, alphaMap, skybox;
 
 	nse::gui::GLBuffer offsetBuffer;
 

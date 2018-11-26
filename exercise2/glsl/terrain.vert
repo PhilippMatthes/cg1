@@ -4,8 +4,6 @@
 
 #version 330
 
-#define M_PI 3.14159265358979323846
-
 in vec4 position;
 in vec2 offset;
 in vec4 viewMatrix;
@@ -15,13 +13,20 @@ uniform float perlinNoise2Frequency;
 uniform float perlinNoise1Height;
 uniform float perlinNoise2Height;
 
+uniform float waterHeight;
+
 out vec3 normals;
 out vec4 vertexPosition;
+out float waterFactor;
 
 uniform mat4 mvp;
+uniform float animation;
+
+const float waterGradient = 1.0;
 
 //Returns the height of the procedural terrain at a given xz position
 float getTerrainHeight(vec2 p);
+float getWaterHeight(vec2 p);
 vec3 calculateNormals(vec2 p);
 
 
@@ -34,6 +39,11 @@ void main()
     vertexPosition = offsetPosition;
 
     float terrainHeight = getTerrainHeight(offsetPosition.xz);
+
+    waterFactor = clamp(terrainHeight - waterHeight, 0.0, 1.0);
+
+    terrainHeight = mix(getWaterHeight(offsetPosition.xz), terrainHeight, waterFactor);
+
     vec4 heightCorrectedPosition = vec4(offsetPosition.x, offsetPosition.y + terrainHeight, offsetPosition.z, offsetPosition.w);
 	gl_Position = mvp * heightCorrectedPosition;
 }
@@ -78,7 +88,11 @@ float getTerrainHeight(vec2 p)
 		amplitude1 *= 0.45;
 		amplitude2 *= 0.45;
 	}
-	return 15 * total / maxAmplitude;
+	return max(waterHeight, 15 * total / maxAmplitude);
+}
+
+float getWaterHeight(vec2 p) {;
+    return 0.6 * perlinNoise((p * 0.2) + vec2(animation, animation));
 }
 
 vec3 calculateNormals(vec2 p) {
