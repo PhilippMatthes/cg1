@@ -31,6 +31,22 @@ Viewer::Viewer()
 	glGenFramebuffers(1, &backgroundFBO);	
 	glGenTextures(1, &backgroundTexture);
 
+	auto mainWindow = SetupMainWindow();
+
+	chkShowNormalMappingOnly = new nanogui::CheckBox(mainWindow, "Show normal mapping only");
+	chkShowNormalMappingOnly->setChecked(false);
+
+	chkShowSpecularLightingOnly = new nanogui::CheckBox(mainWindow, "Show specular lighting only");
+	chkShowSpecularLightingOnly->setChecked(false);
+
+	chkShowFog = new nanogui::CheckBox(mainWindow, "Show fog");
+	chkShowFog->setChecked(true);
+
+	chkUseNormalMap = new nanogui::CheckBox(mainWindow, "Use normal map");
+	chkUseNormalMap->setChecked(true);
+
+	performLayout();
+
 	//Align camera to view a reasonable part of the terrain
 	camera().SetSceneExtent(nse::math::BoundingBox<float, 3>(Eigen::Vector3f(0, 0, 0), Eigen::Vector3f(PATCH_SIZE - 1, 0, PATCH_SIZE - 1)));
 	camera().FocusOnPoint(0.5f * Eigen::Vector3f(PATCH_SIZE - 1, 15, PATCH_SIZE - 1));	
@@ -282,10 +298,10 @@ void Viewer::drawContents()
 	terrainShader.setUniform("screenSize", Eigen::Vector2f(width(), height()), false);
 	terrainShader.setUniform("mvp", mvp);
 	terrainShader.setUniform("cameraPos", cameraPosition, false);
-	terrainShader.setUniform("showNormalMappingOnly", 0, false);
-	terrainShader.setUniform("showSpecularLightingOnly", 0, false);
-	terrainShader.setUniform("useNormalMap", 1, false);
-	terrainShader.setUniform("showFog", 1, false);
+	terrainShader.setUniform("showNormalMappingOnly", static_cast<int>(chkShowNormalMappingOnly->checked()), false);
+	terrainShader.setUniform("showSpecularLightingOnly", static_cast<int>(chkShowSpecularLightingOnly->checked()), false);
+	terrainShader.setUniform("useNormalMap", static_cast<int>(chkUseNormalMap->checked()), false);
+	terrainShader.setUniform("showFog", static_cast<int>(chkShowFog->checked()), false);
 
 	/* Task: Render the terrain */
 	glActiveTexture(GL_TEXTURE0);
@@ -320,10 +336,8 @@ void Viewer::drawContents()
 	glClearDepth(1);
 	glEnable(GL_DEPTH_TEST);
 
-	int count = PATCH_SIZE * PATCH_SIZE * 2 + PATCH_SIZE - 2;
-	count = count * visiblePatches;
+	int count = PATCH_SIZE * PATCH_SIZE * 2 + PATCH_SIZE * 3;
 	// FYI: Uncomment if necessary to show wireframe model
-	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 	glDrawElementsInstanced(GL_TRIANGLE_STRIP, count, GL_UNSIGNED_INT, 0, visiblePatches);
 	
 	//Render text
