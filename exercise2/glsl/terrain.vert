@@ -10,7 +10,6 @@ in vec4 viewMatrix;
 
 out vec3 normals;
 out vec4 vertexPosition;
-in vec2 offset;
 
 uniform mat4 mvp;
 
@@ -30,11 +29,6 @@ void main()
     float terrainHeight = getTerrainHeight(offsetPosition.xz);
     vec4 heightCorrectedPosition = vec4(offsetPosition.x, offsetPosition.y + terrainHeight, offsetPosition.z, offsetPosition.w);
 	gl_Position = mvp * heightCorrectedPosition;
-
-    vec4 positionRelativeToCam = viewMatrix * heightCorrectedPosition;
-    float distance = length(positionRelativeToCam.xyz);
-    fogVisibility = exp(-pow((distance * fogDensity), fogGradient));
-    fogVisibility = clamp(fogVisibility, 0.0, 1.0);
 }
 
 //source: https://gist.github.com/patriciogonzalezvivo/670c22f3966e662d2f83
