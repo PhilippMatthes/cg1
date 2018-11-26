@@ -133,7 +133,7 @@ void main()
     }
     color = calculateLighting(color, blendedSpecular, blendedNormals, dirToViewer);
     if(showFog){
-        color = mix(fogColor, color, getFogFactor());
+        color = mix(getBackgroundColor(), color, getFogFactor());
     }
 
 }
