@@ -227,57 +227,50 @@ void Viewer::drawContents()
 	Eigen::Vector3f cameraPosition = view.inverse().col(3).head<3>();
 	auto *frustumPlanes = new Eigen::Vector4f[6];
 	nse::math::BoundingBox<float, 3> boundingBox;
-	int visiblePatches = 1;
 
 	// Calculate view frustum planes
 	CalculateViewFrustum(mvp, frustumPlanes, boundingBox);
 
-	std::vector<Eigen::Vector2f> offsets;
-	offsets.push_back(Eigen::Vector2f(0,0));
-	offsetBuffer.uploadData(offsets);
-  
-  /*
 	// Create all patches intersecting with the bounding box
 	// and check, if they are visible. If so, add them to the
 	// offsets vector and increment visiblePatches.
 	int minX = (int) boundingBox.min[0];
-  int minY = 0;
-  int minZ = (int) boundingBox.min[2];
-  int maxX = (int) boundingBox.max[0];
-  int maxY = 15;
-  int maxZ = (int) boundingBox.max[2];
+	int minY = 0;
+	int minZ = (int) boundingBox.min[2];
+	int maxX = (int) boundingBox.max[0];
+	int maxY = 15;
+	int maxZ = (int) boundingBox.max[2];
 
-  int clampedMinX = minX - (minX % PATCH_SIZE);
-  int clampedMinZ = minZ - (minZ % PATCH_SIZE);
-  int clampedMaxX = maxX - (maxX % PATCH_SIZE);
-  int clampedMaxZ = maxZ - (maxZ % PATCH_SIZE);
+	int clampedMinX = minX - (minX % PATCH_SIZE);
+	int clampedMinZ = minZ - (minZ % PATCH_SIZE);
+	int clampedMaxX = maxX - (maxX % PATCH_SIZE);
+	int clampedMaxZ = maxZ - (maxZ % PATCH_SIZE);
 
-  int visiblePatches = 0;
-  std::vector<Eigen::Vector2f> offsets;
+	int visiblePatches = 0;
+	std::vector<Eigen::Vector2f> offsets;
 
-  for (int x = clampedMinX; x <= clampedMaxX; x += PATCH_SIZE) {
-      for (int z = clampedMinZ; z <= clampedMaxZ; z += PATCH_SIZE) {
-          nse::math::BoundingBox<float, 3> patchBox (
-              Eigen::Matrix<float, 3, 1> ((float) x, (float) minY, (float) z),
-              Eigen::Matrix<float, 3, 1> ((float) (x + PATCH_SIZE), (float) maxY, (float) (z + PATCH_SIZE))
-          );
+	for (int x = clampedMinX; x <= clampedMaxX; x += PATCH_SIZE) {
+		for (int z = clampedMinZ; z <= clampedMaxZ; z += PATCH_SIZE) {
+			nse::math::BoundingBox<float, 3> patchBox (
+			  Eigen::Matrix<float, 3, 1> ((float) x, (float) minY, (float) z),
+			  Eigen::Matrix<float, 3, 1> ((float) (x + PATCH_SIZE), (float) maxY, (float) (z + PATCH_SIZE))
+			);
 
-          bool isBehind = false;
-          for (int p = 0; p < 6; p += 1) {
-              if (IsBoxCompletelyBehindPlane(patchBox.min, patchBox.max, frustumPlanes[p])) {
-                  isBehind = true;
-                  break;
-              }
-          }
-          if (!isBehind) {
-              offsets.emplace_back((float) x + ((float) PATCH_SIZE / 2), (float) z + ((float) PATCH_SIZE / 2));
-              visiblePatches += 1;
-          }
-      }
-  }
+			bool isBehind = false;
+			for (int p = 0; p < 6; p += 1) {
+				if (IsBoxCompletelyBehindPlane(patchBox.min, patchBox.max, frustumPlanes[p])) {
+					isBehind = true;
+					break;
+				}
+			}
+			if (!isBehind) {
+				offsets.emplace_back((float) x, (float) z);
+				visiblePatches += 1;
+			}
+		}
+	}
 
-  offsetBuffer.uploadData(offsets);
-  */
+  	offsetBuffer.uploadData(offsets);
 
 	RenderSky();
 	
