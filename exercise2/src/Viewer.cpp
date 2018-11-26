@@ -45,6 +45,11 @@ Viewer::Viewer()
 	chkUseNormalMap = new nanogui::CheckBox(mainWindow, "Use normal map");
 	chkUseNormalMap->setChecked(true);
 
+	sldPerlin1Frequency = nse::gui::AddLabeledSliderWithDefaultDisplay(mainWindow, "Perlin 1 Frequency", std::make_pair(0.001f, 0.05f), 0.02f, 2);
+	sldPerlin2Frequency = nse::gui::AddLabeledSliderWithDefaultDisplay(mainWindow, "Perlin 2 Frequency", std::make_pair(0.001f, 0.05f), 0.005f, 2);
+	sldPerlin1Height = nse::gui::AddLabeledSliderWithDefaultDisplay(mainWindow, "Perlin 1 Height", std::make_pair(0.0f, 4.0f), 1.0f, 2);
+	sldPerlin2Height = nse::gui::AddLabeledSliderWithDefaultDisplay(mainWindow, "Perlin 2 Height", std::make_pair(0.0f, 4.0f), 2.0f, 2);
+
 	performLayout();
 
 	//Align camera to view a reasonable part of the terrain
@@ -302,6 +307,11 @@ void Viewer::drawContents()
 	terrainShader.setUniform("showSpecularLightingOnly", static_cast<int>(chkShowSpecularLightingOnly->checked()), false);
 	terrainShader.setUniform("useNormalMap", static_cast<int>(chkUseNormalMap->checked()), false);
 	terrainShader.setUniform("showFog", static_cast<int>(chkShowFog->checked()), false);
+
+	terrainShader.setUniform("perlinNoise1Frequency", sldPerlin1Frequency->value(), false);
+	terrainShader.setUniform("perlinNoise2Frequency", sldPerlin2Frequency->value(), false);
+	terrainShader.setUniform("perlinNoise1Height", sldPerlin1Height->value(), false);
+	terrainShader.setUniform("perlinNoise2Height", sldPerlin2Height->value(), false);
 
 	/* Task: Render the terrain */
 	glActiveTexture(GL_TEXTURE0);

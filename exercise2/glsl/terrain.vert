@@ -4,9 +4,16 @@
 
 #version 330
 
+#define M_PI 3.14159265358979323846
+
 in vec4 position;
 in vec2 offset;
 in vec4 viewMatrix;
+
+uniform float perlinNoise1Frequency;
+uniform float perlinNoise2Frequency;
+uniform float perlinNoise1Height;
+uniform float perlinNoise2Height;
 
 out vec3 normals;
 out vec4 vertexPosition;
@@ -57,14 +64,19 @@ float getTerrainHeight(vec2 p)
 {
 	float total = 0.0;
 	float maxAmplitude = 0.0;
-	float amplitude = 1.0;
-	float frequency = 0.02;
+	float amplitude1 = perlinNoise1Height;
+	float amplitude2 = perlinNoise2Height;
+	float frequency1 = perlinNoise1Frequency;
+	float frequency2 = perlinNoise2Frequency;
 	for (int i = 0; i < 11; i++) 
 	{
-		total +=  ((1.0 - abs(perlinNoise(p * frequency))) * 2.0 - 1.0) * amplitude;
-		frequency *= 2.0;
-		maxAmplitude += amplitude;
-		amplitude *= 0.45;
+		total += ((1.0 - abs(perlinNoise(p * frequency1))) * 2.0 - 1.0) * amplitude1;
+		total += ((1.0 - abs(perlinNoise(p * frequency2))) * 2.0 - 1.0) * amplitude2;
+		frequency1 *= 2.0;
+		frequency2 *= 2.0;
+		maxAmplitude += max(amplitude1, amplitude2);
+		amplitude1 *= 0.45;
+		amplitude2 *= 0.45;
 	}
 	return 15 * total / maxAmplitude;
 }

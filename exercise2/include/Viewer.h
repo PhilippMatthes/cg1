@@ -31,6 +31,11 @@ private:
 	nanogui::CheckBox* chkUseNormalMap;
 	nanogui::CheckBox* chkShowFog;
 
+	nanogui::Slider* sldPerlin1Height;
+	nanogui::Slider* sldPerlin2Height;
+	nanogui::Slider* sldPerlin1Frequency;
+	nanogui::Slider* sldPerlin2Frequency;
+
 	nse::gui::GLShader skyShader;
 	nse::gui::GLVertexArray emptyVAO;
 
