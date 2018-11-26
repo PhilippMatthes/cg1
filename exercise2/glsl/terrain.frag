@@ -26,8 +26,8 @@ uniform bool useNormalMap;
 uniform bool showFog;
 
 const vec3 dirToLight = normalize(vec3(1, 3, 1));
-const float FogDensity = 0.005;
-const vec3 fogColor = vec3(0.5, 0.5,0.5);
+const float FogDensity = 0.006;
+const vec4 fogColor = vec4(0.5, 0.5,0.5,1);
 
 //Calculates the visible surface color based on the Blinn-Phong illumination model
 vec4 calculateLighting(vec4 materialColor, float specularIntensity, vec3 normalizedNormal, vec3 directionToViewer)
@@ -132,7 +132,7 @@ void main()
         color = calculateLighting(vec4(1.0, 1.0, 1.0, 1.0), blendedSpecular, blendedNormals, dirToViewer);
     else if(showFog){
         color = calculateLighting(color, blendedSpecular, blendedNormals, dirToViewer);
-        color = mix(vec4(fogColor, 1), color, getFogFactor());
+        color = mix(fogColor, color, getFogFactor());
     }
     else
         color = calculateLighting(color, blendedSpecular, blendedNormals, dirToViewer);
