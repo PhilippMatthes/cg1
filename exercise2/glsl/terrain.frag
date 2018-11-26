@@ -89,16 +89,17 @@ void main()
     //surface geometry
     //For Oren-Nayar lighting, uncomment the following:
     //Based on: https://stackoverflow.com/questions/40583715/oren-nayar-lighting-in-opengl-how-to-calculate-view-direction-in-fragment-shade#40596525
-    //	vec3 dirToViewer = vec3(0, 1, 0);
-	//vec3 dirToViewer = normalize(vec3(-(gl_FragCoord.xy - screenSize/2) / (screenSize/4), 1.0));
+    //vec3 dirToViewer = vec3(0, 1, 0);
+	  //vec3 dirToViewer = normalize(vec3(-(gl_FragCoord.xy - screenSize/2) / (screenSize/4), 1.0));
     vec3 dirToViewer = normalize(-fragmentPosition); //viewer is at the origin in camera space
 
 
-	//material properties
+
+	  //material properties
     // Task 2.2.4 + 2.2.3
     // Based on: http://thedemonthrone.ca/projects/rendering-terrain/rendering-terrain-part-23-height-and-slope-based-colours/
     // Calculate terrain color
-	float slope = acos(normals.z);
+	  float slope = acos(normals.z);
     float blend = (length(slope) - 0.25f) * (1.0f / (0.5f - 0.25f));
     vec4 terrainColor = mix(texture(grassTexture, textureCoordinates), texture(rockTexture, textureCoordinates), blend);
 
@@ -127,7 +128,7 @@ void main()
     float blendedSpecular = alphaMapColor.x * roadSpecular;
 
     if(showSpecularLightingOnly)
-         color = vec4(blendedSpecular, blendedSpecular, blendedSpecular, blendedSpecular);
+        color = vec4(blendedSpecular, blendedSpecular, blendedSpecular, blendedSpecular);
     else if (showNormalMappingOnly)
         color = calculateLighting(vec4(1.0, 1.0, 1.0, 1.0), blendedSpecular, blendedNormals, dirToViewer);
     else if(showFog){

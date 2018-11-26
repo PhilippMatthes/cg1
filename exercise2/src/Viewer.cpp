@@ -187,11 +187,11 @@ void Viewer::RenderSky()
 void CalculateViewFrustum(const Eigen::Matrix4f& mvp, Eigen::Vector4f* frustumPlanes, nse::math::BoundingBox<float, 3>& bbox)
 {
 	frustumPlanes[0] = (mvp.row(3) + mvp.row(0)).transpose();
-	frustumPlanes[1] = (mvp.row(3) - mvp.row(0)).transpose();
-	frustumPlanes[2] = (mvp.row(3) + mvp.row(1)).transpose();
-	frustumPlanes[3] = (mvp.row(3) - mvp.row(1)).transpose();
-	frustumPlanes[4] = (mvp.row(3) + mvp.row(2)).transpose();
-	frustumPlanes[5] = (mvp.row(3) - mvp.row(2)).transpose();
+    frustumPlanes[1] = (mvp.row(3) - mvp.row(0)).transpose();
+    frustumPlanes[2] = (mvp.row(3) + mvp.row(1)).transpose();
+    frustumPlanes[3] = (mvp.row(3) - mvp.row(1)).transpose();
+    frustumPlanes[4] = (mvp.row(3) + mvp.row(2)).transpose();
+    frustumPlanes[5] = (mvp.row(3) - mvp.row(2)).transpose();
 
 	Eigen::Matrix4f invMvp = mvp.inverse();
 	bbox.reset();
@@ -222,6 +222,7 @@ void Viewer::drawContents()
 {
 	camera().ComputeCameraMatrices(view, proj);
 
+	// Task 2.2.5 b)
 	Eigen::Matrix4f mvp = proj * view;
 	Eigen::Vector3f cameraPosition = view.inverse().col(3).head<3>();
 	auto *frustumPlanes = new Eigen::Vector4f[6];
@@ -234,6 +235,49 @@ void Viewer::drawContents()
 	std::vector<Eigen::Vector2f> offsets;
 	offsets.push_back(Eigen::Vector2f(0,0));
 	offsetBuffer.uploadData(offsets);
+  
+  /*
+	// Create all patches intersecting with the bounding box
+	// and check, if they are visible. If so, add them to the
+	// offsets vector and increment visiblePatches.
+	int minX = (int) boundingBox.min[0];
+  int minY = 0;
+  int minZ = (int) boundingBox.min[2];
+  int maxX = (int) boundingBox.max[0];
+  int maxY = 15;
+  int maxZ = (int) boundingBox.max[2];
+
+  int clampedMinX = minX - (minX % PATCH_SIZE);
+  int clampedMinZ = minZ - (minZ % PATCH_SIZE);
+  int clampedMaxX = maxX - (maxX % PATCH_SIZE);
+  int clampedMaxZ = maxZ - (maxZ % PATCH_SIZE);
+
+  int visiblePatches = 0;
+  std::vector<Eigen::Vector2f> offsets;
+
+  for (int x = clampedMinX; x <= clampedMaxX; x += PATCH_SIZE) {
+      for (int z = clampedMinZ; z <= clampedMaxZ; z += PATCH_SIZE) {
+          nse::math::BoundingBox<float, 3> patchBox (
+              Eigen::Matrix<float, 3, 1> ((float) x, (float) minY, (float) z),
+              Eigen::Matrix<float, 3, 1> ((float) (x + PATCH_SIZE), (float) maxY, (float) (z + PATCH_SIZE))
+          );
+
+          bool isBehind = false;
+          for (int p = 0; p < 6; p += 1) {
+              if (IsBoxCompletelyBehindPlane(patchBox.min, patchBox.max, frustumPlanes[p])) {
+                  isBehind = true;
+                  break;
+              }
+          }
+          if (!isBehind) {
+              offsets.emplace_back((float) x + ((float) PATCH_SIZE / 2), (float) z + ((float) PATCH_SIZE / 2));
+              visiblePatches += 1;
+          }
+      }
+  }
+
+  offsetBuffer.uploadData(offsets);
+  */
 
 	RenderSky();
 	
@@ -279,17 +323,17 @@ void Viewer::drawContents()
 	glBindTexture(GL_TEXTURE_2D, backgroundTexture);
 	terrainShader.setUniform("background", 6, false);
 
+
 	glClearDepth(1);
 	glEnable(GL_DEPTH_TEST);
 
 	int count = PATCH_SIZE * PATCH_SIZE * 2 + PATCH_SIZE - 2;
+	count = count * visiblePatches;
 	// FYI: Uncomment if necessary to show wireframe model
 	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-    //glDrawElements(GL_TRIANGLE_STRIP, count, GL_UNSIGNED_INT, 0);
-    glDrawElementsInstanced(GL_TRIANGLE_STRIP, count, GL_UNSIGNED_INT, 0, 1);
-
-
-    //Render text
+	glDrawElementsInstanced(GL_TRIANGLE_STRIP, count, GL_UNSIGNED_INT, 0, visiblePatches);
+	
+	//Render text
 	nvgBeginFrame(mNVGContext, width(), height(), mPixelRatio);
 	std::string text = "Patches visible: " + std::to_string(visiblePatches);
 	nvgText(mNVGContext, 10, 20, text.c_str(), nullptr);
