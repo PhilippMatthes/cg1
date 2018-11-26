@@ -10,10 +10,7 @@ in vec4 viewMatrix;
 
 out vec3 normals;
 out vec4 vertexPosition;
-out float fogVisibility;
-
-const float fogDensity = 0.007;
-const float fogGradient = 1.5;
+in vec2 offset;
 
 uniform mat4 mvp;
 
