@@ -23,6 +23,8 @@ uniform samplerCube skybox;
 uniform sampler2D waterTexture;
 uniform sampler2D waterNormalMap;
 
+uniform float animation;
+
 uniform vec3 cameraPos;
 uniform vec2 screenSize;
 
@@ -129,8 +131,12 @@ vec4 terrainColor(vec3 fragmentPosition, vec3 dirToLight) {
 
 vec4 waterColor(vec3 fragmentPosition, vec3 dirToLight) {
     vec2 textureCoordinates = vertexPosition.xz * 10/255;
+    vec2 animatedTextureCoordinates = (2 * textureCoordinates) + vec2(0.05 * animation, 0.05 * animation);
     float specular = 1.0;
-    vec4 colorMaterial = texture(waterTexture, textureCoordinates);
+    vec4 colorMaterial = 0.5 * texture(waterTexture, animatedTextureCoordinates);
+
+    vec3 normals = 0.5 * texture(waterNormalMap, animatedTextureCoordinates).xyz;
+
     vec4 colorReflection = mix(colorMaterial, getReflectionColor(), 0.5);
     vec4 colorLighting = calculateLighting(colorReflection, specular, normals, dirToLight);
     return mix(getBackgroundColor(), colorLighting, getFogFactor());
