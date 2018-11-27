@@ -33,6 +33,16 @@ Viewer::Viewer()
 	glGenFramebuffers(1, &backgroundFBO);	
 	glGenTextures(1, &backgroundTexture);
 
+	glBindFramebuffer(GL_FRAMEBUFFER, backgroundFBO);
+	glBindTexture(GL_TEXTURE_2D, backgroundTexture);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width(), height(), 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, backgroundTexture, 0);
+	auto fboStatus = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+	if (fboStatus != GL_FRAMEBUFFER_COMPLETE)
+		std::cout << "Warning: Background framebuffer is not complete: " << fboStatus << std::endl;
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
 	auto mainWindow = SetupMainWindow();
 
 	sldPerlin1Frequency = nse::gui::AddLabeledSliderWithDefaultDisplay(mainWindow, "Perlin 1 Frequency", std::make_pair(0.001f, 0.05f), 0.02f, 2);
