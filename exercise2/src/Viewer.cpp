@@ -36,10 +36,10 @@ Viewer::Viewer()
 	auto mainWindow = SetupMainWindow();
 
 	sldPerlin1Frequency = nse::gui::AddLabeledSliderWithDefaultDisplay(mainWindow, "Perlin 1 Frequency", std::make_pair(0.001f, 0.05f), 0.02f, 2);
-	sldPerlin2Frequency = nse::gui::AddLabeledSliderWithDefaultDisplay(mainWindow, "Perlin 2 Frequency", std::make_pair(0.001f, 0.05f), 0.005f, 2);
-	sldPerlin1Height = nse::gui::AddLabeledSliderWithDefaultDisplay(mainWindow, "Perlin 1 Height", std::make_pair(0.0f, 4.0f), 1.0f, 2);
-	sldPerlin2Height = nse::gui::AddLabeledSliderWithDefaultDisplay(mainWindow, "Perlin 2 Height", std::make_pair(0.0f, 4.0f), 2.0f, 2);
-    sldWaterHeight = nse::gui::AddLabeledSliderWithDefaultDisplay(mainWindow, "Water Height", std::make_pair(0.0f, 10.0f), 4.0f, 2);
+        sldPerlin2Frequency = nse::gui::AddLabeledSliderWithDefaultDisplay(mainWindow, "Perlin 2 Frequency", std::make_pair(0.001f, 0.05f), 0.01f, 2);
+        sldPerlin1Height = nse::gui::AddLabeledSliderWithDefaultDisplay(mainWindow, "Perlin 1 Height", std::make_pair(0.0f, 4.0f), 4.0f, 2);
+        sldPerlin2Height = nse::gui::AddLabeledSliderWithDefaultDisplay(mainWindow, "Perlin 2 Height", std::make_pair(0.0f, 4.0f), 1.95f, 2);
+    sldWaterHeight = nse::gui::AddLabeledSliderWithDefaultDisplay(mainWindow, "Water Height", std::make_pair(0.0f, 10.0f), 0.1f, 2);
 
 	performLayout();
 
