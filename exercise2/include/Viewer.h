@@ -44,7 +44,7 @@ private:
 
 	nse::gui::GLVertexArray grassVAO;
 
-	GLuint grassTexture, rockTexture, roadColorTexture, roadNormalMap, roadSpecularMap, alphaMap, skybox;
+	GLuint grassTexture, rockTexture, roadColorTexture, roadNormalMap, roadSpecularMap, alphaMap, skybox, waterTexture, waterNormalMap;
 
 	nse::gui::GLBuffer offsetBuffer;
 

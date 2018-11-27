@@ -16,9 +16,13 @@ uniform sampler2D alphaMap;
 uniform sampler2D roadSpecularMap;
 uniform sampler2D roadNormalMap;
 
+uniform sampler2D background;
+
 uniform samplerCube skybox;
 
-uniform sampler2D background;
+uniform sampler2D waterTexture;
+uniform sampler2D waterNormalMap;
+
 uniform vec3 cameraPos;
 uniform vec2 screenSize;
 
@@ -124,8 +128,9 @@ vec4 terrainColor(vec3 fragmentPosition, vec3 dirToLight) {
 }
 
 vec4 waterColor(vec3 fragmentPosition, vec3 dirToLight) {
+    vec2 textureCoordinates = vertexPosition.xz * 10/255;
     float specular = 1.0;
-    vec4 colorMaterial = vec4(24.0/255.0, 48.0/255.0, 124.0/255.0, 1.0);
+    vec4 colorMaterial = texture(waterTexture, textureCoordinates);
     vec4 colorReflection = mix(colorMaterial, getReflectionColor(), 0.5);
     vec4 colorLighting = calculateLighting(colorReflection, specular, normals, dirToLight);
     return mix(getBackgroundColor(), colorLighting, getFogFactor());

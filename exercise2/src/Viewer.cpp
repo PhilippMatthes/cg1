@@ -232,6 +232,8 @@ void Viewer::CreateGeometry()
 	roadColorTexture = CreateTexture((unsigned char*)roadcolor_jpg, roadcolor_jpg_size);
 	roadNormalMap = CreateTexture((unsigned char*)roadnormals_jpg, roadnormals_jpg_size);
 	roadSpecularMap = CreateTexture((unsigned char*)roadspecular_jpg, roadspecular_jpg_size);
+	waterNormalMap = CreateTexture((unsigned char*)waternormals_jpg, waternormals_jpg_size);
+	waterTexture = CreateTexture((unsigned char*)watertexture_jpg, watertexture_jpg_size);
 
     skybox = loadCubemap();
 
@@ -401,7 +403,15 @@ void Viewer::drawContents()
 
 	glActiveTexture(GL_TEXTURE7);
 	glBindTexture(GL_TEXTURE_CUBE_MAP, skybox);
-	terrainShader.setUniform("skybox", skybox);
+        terrainShader.setUniform("skybox", 7, skybox);
+
+	glActiveTexture(GL_TEXTURE8);
+	glBindTexture(GL_TEXTURE_2D, waterNormalMap);
+        terrainShader.setUniform("waterNormalMap", 8, false);
+
+	glActiveTexture(GL_TEXTURE9);
+	glBindTexture(GL_TEXTURE_2D, waterTexture);
+        terrainShader.setUniform("waterTexture", 9, false);
 
 
 	glClearDepth(1);
