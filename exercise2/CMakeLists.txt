@@ -1,7 +1,9 @@
 set(GLSL_FILES	sky.vert sky.frag
-				terrain.vert terrain.frag)
+				terrain.vert terrain.frag terrain.tesc terrain.tese)
 
 ProcessGLSLFiles(GLSL_FILES)
+
+add_compile_definitions(HAVE_TESSELLATION=true)
 
 set(TEXTURE_FILES grass.jpg rock.jpg roadColor.jpg roadNormals.jpg roadSpecular.jpg alpha.jpg back.jpg bottom.jpg front.jpg left.jpg right.jpg top.jpg waterNormals.jpg waterTexture.jpg)
 PREPEND(TEXTURE_FILES "${CMAKE_CURRENT_SOURCE_DIR}/resources/" ${TEXTURE_FILES})

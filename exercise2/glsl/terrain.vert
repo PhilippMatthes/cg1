@@ -92,7 +92,7 @@ float getTerrainHeight(vec2 p)
 }
 
 float getWaterHeight(vec2 p) {;
-    return 0.2 * perlinNoise((p * 0.2) + vec2(animation, animation));
+    return (0.2 * perlinNoise((p * 0.2) + vec2(animation, animation))) + waterHeight;
 }
 
 vec3 calculateNormals(vec2 p) {
