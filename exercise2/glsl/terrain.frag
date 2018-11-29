@@ -102,6 +102,7 @@ vec4 terrainColor(vec3 fragmentPosition, vec3 dirToLight) {
     // Calculate terrain color
 	float slope = acos(normals.z);
     float blend = (length(slope) - 0.25f) * (1.0f / (0.5f - 0.25f));
+    blend = clamp(blend, 0.0, 1.0);
     vec4 terrainColor = mix(texture(grassTexture, textureCoordinates), texture(rockTexture, textureCoordinates), blend);
 
     // Calculate alpha map
