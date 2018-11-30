@@ -1,6 +1,6 @@
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include ${CMAKE_CURRENT_BINARY_DIR})
 
-add_compile_definitions(HAVE_TESSELLATION=true)
+add_definitions(-DHAVE_TESSELLATION=true)
 
 set(GLSL_FILES	mesh.vert mesh.frag
 				simple.vert simple.frag)
