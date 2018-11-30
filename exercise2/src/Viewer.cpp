@@ -394,8 +394,7 @@ void Viewer::drawContents()
 	glClearDepth(1);
 	glEnable(GL_DEPTH_TEST);
 
-	// FYI: Uncomment if necessary to show wireframe model
-	glPatchParameteri(GL_PATCH_VERTICES, 4);
+	glPatchParameteri(GL_PATCH_VERTICES, 1);
 	glDrawElementsInstanced(GL_PATCHES, visiblePatches, GL_UNSIGNED_INT, 0, visiblePatches);
 	
 	//Render text
