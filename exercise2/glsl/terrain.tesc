@@ -8,10 +8,10 @@ layout(vertices = 4) out;
 uniform vec2 screenSize;
 uniform mat4 mvp;
 
-https://prideout.net/blog/old/blog/index.html@p=48.html
-in vec3 TEC_position;
+in vec3 TCS_position[];
+out vec3 TEC_position[];
 
-const float lod = 4.0;
+// https://prideout.net/blog/old/blog/index.html@p=48.html
 
 void main(){
      #define id gl_InvocationID
@@ -29,15 +29,15 @@ void main(){
          * because the tessellation of one inner vertex is mirrored on the
          * opposite one.
          */
-        gl_TessLevelInner[0] = lod;
-        gl_TessLevelInner[1] = lod;
+        gl_TessLevelInner[0] = 4.0;
+        gl_TessLevelInner[1] = 4.0;
 
-        gl_TessLevelOuter[0] = lod;
-        gl_TessLevelOuter[1] = lod;
-        gl_TessLevelOuter[2] = lod;
-        gl_TessLevelOuter[3] = lod;
+        gl_TessLevelOuter[0] = 4.0;
+        gl_TessLevelOuter[1] = 4.0;
+        gl_TessLevelOuter[2] = 4.0;
+        gl_TessLevelOuter[3] = 4.0;
      }
      // On invocation of any other vertex than the first,
      // pass through the generated vertex to the Fragment Shader.
-     gl_out[id].gl_Position = gl_in[id].gl_Position;
+     TEC_position[id] = TCS_position[id];
  }

@@ -2,10 +2,10 @@
 // chair of the TU Dresden. Do not distribute! 
 // Copyright (C) CGV TU Dresden - All Rights Reserved
 
-#version 330
+#version 430
 
 in vec3 FRAG_normals;
-in vec4 FRAG_position;
+in vec3 FRAG_position;
 in float FRAG_waterFactor;
 
 out vec4 color;
@@ -43,7 +43,7 @@ vec4 calculateLighting(vec4 materialColor, float specularIntensity, vec3 normali
 
 vec4 getReflectionColor() {
     // https://darrensweeney.net/2015/12/17/opengl-skybox-rendering/
-    vec3 I = normalize(FRAG_position.xyz - cameraPos);
+    vec3 I = normalize(FRAG_position - cameraPos);
     vec3 R = reflect(I, normalize(FRAG_normals));
     return texture(skybox, -R);
 }
@@ -90,7 +90,7 @@ vec4 terrainColor(vec3 dirToLight) {
 	vec3 n = normalize(FRAG_normals);
 
 	mat3 tangentSpaceToViewSpace, viewSpaceToTangentSpace;
-	calculateTangentSpace(n, FRAG_position.xyz, textureCoordinates, tangentSpaceToViewSpace, viewSpaceToTangentSpace);
+	calculateTangentSpace(n, FRAG_position, textureCoordinates, tangentSpaceToViewSpace, viewSpaceToTangentSpace);
 
 	//material properties
     // Task 2.2.4 + 2.2.3

@@ -2,14 +2,14 @@
 // chair of the TU Dresden. Do not distribute! 
 // Copyright (C) CGV TU Dresden - All Rights Reserved
 
-#version 330
+#version 430
 
-in vec2 offset;
-out vec3 TEC_Position;
+in vec4 position;
+out vec3 TCS_Position;
 
 void main()
 {
     // Pass through position to Tessellation Control Shader
     // But first, offset the position in terms of instanced rendering
-    TESC_Position = vec3(offset.x, 0, offset.y);
+    TCS_Position = position.xyz;
 }

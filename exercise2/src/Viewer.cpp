@@ -192,15 +192,13 @@ void Viewer::CreateGeometry()
 	terrainVAO.generate();
 	terrainVAO.bind();
 
-    // Task 2.2.5 a)
-    // See: https://tu-dresden.de/ing/informatik/smt/cgv/ressourcen/dateien/lehre/ws-18-19/cg1/CGI_03_Geometry.pdf?lang=de
-    offsetBuffer.bind();
+	terrainShader.bind();
+	
+	offsetBuffer.bind();
     GLuint offset = static_cast<GLuint>(terrainShader.attrib("offset"));
     glEnableVertexAttribArray(offset);
     glVertexAttribPointer(offset, 2, GL_FLOAT, GL_FALSE, 0, 0);
-    glVertexAttribDivisor(offset, 1);
-
-	terrainShader.bind();
+	glVertexAttribDivisor(offset, 1);
 
 	std::cout << "Creating textures ..." << std::endl;
 
@@ -305,7 +303,7 @@ void Viewer::drawContents()
 	int clampedMaxZ = maxZ - (maxZ % PATCH_SIZE);
 
 	int visiblePatches = 0;
-	std::vector<Eigen::Vector2f> offsets;
+	std::vector<Eigen::Vector4f> offsets;
 
 	for (int x = clampedMinX; x <= clampedMaxX; x += PATCH_SIZE) {
 		for (int z = clampedMinZ; z <= clampedMaxZ; z += PATCH_SIZE) {
@@ -322,20 +320,23 @@ void Viewer::drawContents()
 				}
 			}
 			if (!isBehind) {
-				offsets.emplace_back((float) x, (float) z);
+				offsets.emplace_back((float) x, 0, (float) z, 1);
 				visiblePatches += 1;
 			}
 		}
 	}
-
+	
+	terrainShader.bind();
+	std::cout << "Upload data...";
   	offsetBuffer.uploadData(offsets);
+  	offsetBuffer.bindToAttribute("position");
+	std::cout << "finished." << "\n";
 
 	RenderSky();
 	
 	//render terrain
 	glEnable(GL_DEPTH_TEST);
 	terrainVAO.bind();
-	terrainShader.bind();
 
 	terrainShader.setUniform("screenSize", Eigen::Vector2f(width(), height()), false);
 	terrainShader.setUniform("mvp", mvp);

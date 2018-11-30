@@ -3,7 +3,7 @@
 // Tessellation Evaluation Shader
 // http://codeflow.org/entries/2010/nov/07/opengl-4-tessellation/
 
-layout(quads, fractional_odd_spacing, cw) in;
+layout(quads) in;
 
 
 uniform float perlinNoise1Frequency;
@@ -12,9 +12,10 @@ uniform float perlinNoise1Height;
 uniform float perlinNoise2Height;
 uniform float waterHeight;
 
+in vec3 TCS_position[];
 
 out vec3 FRAG_normals;
-out vec4 FRAG_position;
+out vec3 FRAG_position;
 out float FRAG_waterFactor;
 
 
@@ -96,15 +97,12 @@ void main(){
     float v = gl_TessCoord.y;
 
     // Calculate mean position of the tessellated quad
-    vec4 position =
-    ((1-u) * (1-v) * gl_in[2].gl_Position +
-    u * (1-v) * gl_in[0].gl_Position +
-    u * v * gl_in[1].gl_Position +
-    (1-u) * v * gl_in[3].gl_Position);
+    vec3 a = mix(TCS_position[0], TCS_position[1], u);
+    vec3 b = mix(TCS_position[2], TCS_position[3], u);
+
+    vec3 position = mix(a, b, v);
 
     FRAG_normals = calculateNormals(position.xz);
-
-    FRAG_position = position;
 
     float terrainHeight = getTerrainHeight(position.xz);
 
@@ -112,8 +110,9 @@ void main(){
 
     terrainHeight = mix(getWaterHeight(position.xy), terrainHeight, FRAG_waterFactor);
 
-    vec4 heightCorrectedPosition = vec4(position.x, terrainHeight, position.y, position.w);
+    vec4 heightCorrectedPosition = vec4(position.x, terrainHeight, position.y, 1);
 
-    gl_Position = mvp * heightCorrectedPosition;
+    FRAG_position = (mvp * heightCorrectedPosition).xyz;
 
+    gl_Position = (mvp * heightCorrectedPosition);
 }
