@@ -27,13 +27,13 @@ void main(){
          * because the tessellation of one inner vertex is mirrored on the
          * opposite one.
          */
-        gl_TessLevelInner[0] = 4.0;
-        gl_TessLevelInner[1] = 4.0;
+        gl_TessLevelInner[0] = 64;
+        gl_TessLevelInner[1] = 64;
 
-        gl_TessLevelOuter[0] = 4.0;
-        gl_TessLevelOuter[1] = 4.0;
-        gl_TessLevelOuter[2] = 4.0;
-        gl_TessLevelOuter[3] = 4.0;
+        gl_TessLevelOuter[0] = 64;
+        gl_TessLevelOuter[1] = 64;
+        gl_TessLevelOuter[2] = 64;
+        gl_TessLevelOuter[3] = 64;
      }
      // On invocation of any other vertex than the first,
      // pass through the generated vertex to the Fragment Shader.

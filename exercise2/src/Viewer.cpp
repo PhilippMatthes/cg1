@@ -221,14 +221,7 @@ void Viewer::CreateGeometry()
 	std::vector<uint32_t> indices;
 
 	terrainShader.bind();
-
 	PrintAttributes(terrainShader.mProgramShader);
-
-	positionBuffer.bind();
-	positionBuffer.uploadData(positions).bindToAttribute("position");
-
-	indexBuffer.bind();
-	indexBuffer.uploadData(indices.size() * sizeof(uint32_t), indices.data());
 
 	std::cout << "Creating textures ..." << std::endl;
 
@@ -268,7 +261,7 @@ void Viewer::RenderSky()
 	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 }
 
-void CalculateViewFrustum(const Eigen::Matrix4f& mvp, Eigen::Vector4f* frustumPlanes, nse::math::BoundingBox<float, 3>& bbox)
+void CalculateViewFrustum(const Eigen::Matrix4f mvp, Eigen::Vector4f* frustumPlanes, nse::math::BoundingBox<float, 3>& bbox)
 {
 	frustumPlanes[0] = (mvp.row(3) + mvp.row(0)).transpose();
     frustumPlanes[1] = (mvp.row(3) - mvp.row(0)).transpose();
@@ -311,6 +304,14 @@ void Viewer::drawContents()
 	// Task 2.2.5 b)
 	Eigen::Matrix4f mvp = proj * view;
 	Eigen::Vector3f cameraPosition = view.inverse().col(3).head<3>();
+
+	RenderSky();
+
+	//render terrain
+	glEnable(GL_DEPTH_TEST);
+	terrainVAO.bind();
+	terrainShader.bind();
+
 	auto *frustumPlanes = new Eigen::Vector4f[6];
 	nse::math::BoundingBox<float, 3> boundingBox;
 
@@ -352,36 +353,32 @@ void Viewer::drawContents()
 			}
 			if (!isBehind) {
 				positions.emplace_back((float) x, 0, (float) z, 1);
-				indices.emplace_back(x+z);
+				indices.emplace_back(visiblePatches);
+
 				visiblePatches += 1;
 			}
 		}
 	}
 
-	std::cout << "Upload data...";
-	terrainShader.bind();
-  	positionBuffer.uploadData(positions).bindToAttribute("position");
+	positionBuffer.bind();
+	positionBuffer.uploadData(positions).bindToAttribute("position");
+
+	indexBuffer.bind();
 	indexBuffer.uploadData(indices.size() * sizeof(uint32_t), indices.data());
-	std::cout << "finished." << "\n";
 
-	RenderSky();
-	
-	//render terrain
-	glEnable(GL_DEPTH_TEST);
-	terrainVAO.bind();
-	terrainShader.bind();
-
-	terrainShader.setUniform("screenSize", Eigen::Vector2f(width(), height()), false);
 	terrainShader.setUniform("mvp", mvp);
-	terrainShader.setUniform("cameraPos", cameraPosition, false);
+	terrainShader.setUniform("screenSize", Eigen::Vector2f(width(), height()));
+	terrainShader.setUniform("mv", view);
+	terrainShader.setUniform("projection", proj);
+	terrainShader.setUniform("cameraPos", cameraPosition);
 
-    terrainShader.setUniform("animation", animation, false);
+    terrainShader.setUniform("animation", animation);
 
-	terrainShader.setUniform("perlinNoise1Frequency", sldPerlin1Frequency->value(), false);
-	terrainShader.setUniform("perlinNoise2Frequency", sldPerlin2Frequency->value(), false);
-	terrainShader.setUniform("perlinNoise1Height", sldPerlin1Height->value(), false);
-	terrainShader.setUniform("perlinNoise2Height", sldPerlin2Height->value(), false);
-    terrainShader.setUniform("waterHeight", sldWaterHeight->value(), false);
+	terrainShader.setUniform("perlinNoise1Frequency", sldPerlin1Frequency->value());
+	terrainShader.setUniform("perlinNoise2Frequency", sldPerlin2Frequency->value());
+	terrainShader.setUniform("perlinNoise1Height", sldPerlin1Height->value());
+	terrainShader.setUniform("perlinNoise2Height", sldPerlin2Height->value());
+    terrainShader.setUniform("waterHeight", sldWaterHeight->value());
 
 	/* Task: Render the terrain */
 	glActiveTexture(GL_TEXTURE0);
@@ -427,7 +424,8 @@ void Viewer::drawContents()
 	glClearDepth(1);
 	glEnable(GL_DEPTH_TEST);
 
-	glPatchParameteri(GL_PATCH_VERTICES, 1);
+	glPatchParameteri(GL_PATCH_VERTICES, 4);
+	// glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 	glDrawElementsInstanced(GL_PATCHES, visiblePatches, GL_UNSIGNED_INT, 0, visiblePatches);
 	
 	//Render text

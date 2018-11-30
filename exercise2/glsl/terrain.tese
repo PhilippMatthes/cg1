@@ -11,6 +11,7 @@ uniform float perlinNoise2Frequency;
 uniform float perlinNoise1Height;
 uniform float perlinNoise2Height;
 uniform float waterHeight;
+uniform mat4 projection;
 
 in vec3 TEC_position[];
 
@@ -93,26 +94,24 @@ vec3 calculateNormals(vec2 p) {
 
 
 void main(){
-    float u = gl_TessCoord.x;
-    float v = gl_TessCoord.y;
-
-    // Calculate mean position of the tessellated quad
-    vec3 a = mix(TEC_position[0], TEC_position[1], u);
-    vec3 b = mix(TEC_position[2], TEC_position[3], u);
-
-    vec3 position = mix(a, b, v);
+    // Interpolate along bottom edge using x component of the
+    // tessellation coordinate
+    vec3 p1 = mix(TEC_position[0], TEC_position[1], gl_TessCoord.x);
+    // Interpolate along top edge using x component of the
+    // tessellation coordinate
+    vec3 p2 = mix(TEC_position[2], TEC_position[3], gl_TessCoord.x);
+    // Now interpolate those two results using the y component
+    // of tessellation coordinate
+    vec4 position = vec4(mix(p1, p2, gl_TessCoord.y), 1);
 
     FRAG_normals = calculateNormals(position.xz);
-
     float terrainHeight = getTerrainHeight(position.xz);
 
     FRAG_waterFactor = clamp(terrainHeight - waterHeight, 0.0, 1.0);
+    terrainHeight = mix(getWaterHeight(position.xz), terrainHeight, FRAG_waterFactor);
+    vec4 heightCorrectedPosition = vec4(position.x, position.y + terrainHeight, position.z, 1);
 
-    terrainHeight = mix(getWaterHeight(position.xy), terrainHeight, FRAG_waterFactor);
+    gl_Position = mvp * position;
 
-    vec4 heightCorrectedPosition = vec4(position.x, terrainHeight, position.y, 1);
-
-    FRAG_position = (mvp * heightCorrectedPosition).xyz;
-
-    gl_Position = (mvp * heightCorrectedPosition);
+    FRAG_position = position.xyz;
 }
