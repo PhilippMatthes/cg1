@@ -110,9 +110,9 @@ void main(){
 
     FRAG_waterFactor = clamp(terrainHeight - waterHeight, 0.0, 1.0);
 
-    terrainHeight = mix(getWaterHeight(position.xz), terrainHeight, FRAG_waterFactor);
+    terrainHeight = mix(getWaterHeight(position.xy), terrainHeight, FRAG_waterFactor);
 
-    vec4 heightCorrectedPosition = vec4(position.x, position.y + terrainHeight, position.z, position.w);
+    vec4 heightCorrectedPosition = vec4(position.x, terrainHeight, position.y, position.w);
 
     gl_Position = mvp * heightCorrectedPosition;
 

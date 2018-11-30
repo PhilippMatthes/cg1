@@ -8,6 +8,9 @@ layout(vertices = 4) out;
 uniform vec2 screenSize;
 uniform mat4 mvp;
 
+https://prideout.net/blog/old/blog/index.html@p=48.html
+in vec3 TEC_position;
+
 const float lod = 4.0;
 
 void main(){

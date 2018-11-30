@@ -4,13 +4,12 @@
 
 #version 330
 
-in vec4 position;
-in vec4 offset;
+in vec2 offset;
+out vec3 TEC_Position;
 
 void main()
 {
     // Pass through position to Tessellation Control Shader
     // But first, offset the position in terms of instanced rendering
-    vec4 offsetPosition = vec4(position.x + offset.x, position.y, position.z + offset.y, position.w);
-    gl_Position = offsetPosition;
+    TESC_Position = vec3(offset.x, 0, offset.y);
 }

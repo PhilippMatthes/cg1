@@ -79,8 +79,8 @@ bool Viewer::resizeEvent(const Eigen::Vector2i&)
 void Viewer::LoadShaders()
 {
 	skyShader.init("Sky Shader", std::string((const char*)sky_vert, sky_vert_size), std::string((const char*)sky_frag, sky_frag_size));
-	terrainShader.init("Terrain Shader", std::string((const char*)terrain_vert, terrain_vert_size), std::string((const char*)terrain_frag, terrain_frag_size));
-	/*
+	// terrainShader.init("Terrain Shader", std::string((const char*)terrain_vert, terrain_vert_size), std::string((const char*)terrain_frag, terrain_frag_size));
+
 	terrainShader.initWithTessellation(
 	        "Terrain Shader",
             std::string((const char*)terrain_vert, terrain_vert_size),
@@ -88,7 +88,6 @@ void Viewer::LoadShaders()
             std::string((const char*)terrain_tese, terrain_tese_size),
             std::string((const char*)terrain_frag, terrain_frag_size)
         );
-        */
 }
 
 unsigned int loadCubemap()
