@@ -6,11 +6,11 @@
 
 in vec4 position;
 
-out vec3 TCS_Position;
+out vec3 TCS_position;
 
 void main()
 {
     // Pass through position to Tessellation Control Shader
     // But first, offset the position in terms of instanced rendering
-    TCS_Position = position.xyz;
+    TCS_position = position.xyz;
 }
