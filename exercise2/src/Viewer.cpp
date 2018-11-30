@@ -185,6 +185,29 @@ GLuint CreateTexture(const unsigned char* fileData, size_t fileLength, bool repe
 	return tex;
 }
 
+void Viewer::PrintAttributes(GLuint program)
+{
+    GLint i;
+    GLint count;
+
+    GLint size; // size of the variable
+    GLenum type; // type of the variable (float, vec3 or mat4, etc)
+
+    const GLsizei bufSize = 16; // maximum name length
+    GLchar name[bufSize]; // variable name in GLSL
+    GLsizei length; // name length
+
+    glGetProgramiv(program, GL_ACTIVE_ATTRIBUTES, &count);
+    printf("Active Attributes: %d\n", count);
+
+    for (i = 0; i < count; i++)
+    {
+        glGetActiveAttrib(program, (GLuint)i, bufSize, &length, &size, &type, name);
+
+        printf("Attribute #%d Type: %u Name: %s\n", i, type, name);
+    }
+}
+
 void Viewer::CreateGeometry()
 {
 	//empty VAO for sky
@@ -232,6 +255,8 @@ void Viewer::CreateGeometry()
 	terrainShader.bind();
 	terrainPositions.uploadData(positions).bindToAttribute("position");
 	terrainIndices.uploadData(indices.size() * sizeof(uint32_t), indices.data());
+
+	PrintAttributes(terrainShader.mProgramShader);
 
 	std::cout << "Creating textures ..." << std::endl;
 

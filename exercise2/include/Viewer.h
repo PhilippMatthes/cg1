@@ -16,7 +16,7 @@ public:
 
 	void LoadShaders();
 	void CreateGeometry();
-
+	void PrintAttributes(GLuint program);
 	void drawContents();	
 	bool resizeEvent(const Eigen::Vector2i&);
 
