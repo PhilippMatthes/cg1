@@ -21,7 +21,6 @@ const uint32_t PATCH_SIZE = 256; //number of vertices along one side of the terr
 
 Viewer::Viewer()
 	: AbstractViewer("CG1 Exercise 2"),
-	terrainPositions(nse::gui::VertexBuffer), terrainIndices(nse::gui::IndexBuffer),
 	offsetBuffer(nse::gui::VertexBuffer)
 { 
 	LoadShaders();
@@ -193,9 +192,6 @@ void Viewer::CreateGeometry()
 	//terrain VAO	
 	terrainVAO.generate();
 	terrainVAO.bind();
-	
-	std::vector<Eigen::Vector4f> positions;
-	std::vector<uint32_t> indices;
 
     // Task 2.2.5 a)
     // See: https://tu-dresden.de/ing/informatik/smt/cgv/ressourcen/dateien/lehre/ws-18-19/cg1/CGI_03_Geometry.pdf?lang=de
@@ -205,33 +201,7 @@ void Viewer::CreateGeometry()
     glVertexAttribPointer(offset, 2, GL_FLOAT, GL_FALSE, 0, 0);
     glVertexAttribDivisor(offset, 1);
 
-    /*Generate positions and indices for a terrain patch with a
-      single triangle strip */
-
-    // Source: https://tu-dresden.de/ing/informatik/smt/cgv/ressourcen/dateien/lehre/ws-18-19/cg1/CGI_03_Geometry.pdf?lang=en
-
-    for(int x = 0; x <= PATCH_SIZE; ++x) {
-        for (int z = 0; z <= PATCH_SIZE; ++z) {
-            Eigen::Vector4f position (x, 0, z, 1);
-
-            positions.push_back(position);
-        }
-    }
-
-    glEnable(GL_PRIMITIVE_RESTART);
-    glPrimitiveRestartIndex(UINT_MAX);
-
-    for (int x = 0; x < PATCH_SIZE; ++x) {
-        for (int z = 0; z <= PATCH_SIZE; ++z) {
-            indices.push_back(x*(PATCH_SIZE+1)+z);
-            indices.push_back((x+1)*(PATCH_SIZE+1)+z);
-        }
-		indices.push_back(UINT_MAX);
-    }
-
 	terrainShader.bind();
-	terrainPositions.uploadData(positions).bindToAttribute("position");
-	terrainIndices.uploadData(indices.size() * sizeof(uint32_t), indices.data());
 
 	std::cout << "Creating textures ..." << std::endl;
 
@@ -308,7 +278,6 @@ bool IsBoxCompletelyBehindPlane(const Eigen::Vector3f& boxMin, const Eigen::Vect
 void Viewer::drawContents()
 {
 	camera().ComputeCameraMatrices(view, proj);
-
 
 	animation += 0.03;
 
@@ -422,13 +391,12 @@ void Viewer::drawContents()
 	glBindTexture(GL_TEXTURE_2D, waterTexture);
         terrainShader.setUniform("waterTexture", 9, false);
 
-
 	glClearDepth(1);
 	glEnable(GL_DEPTH_TEST);
 
-	int count = PATCH_SIZE * PATCH_SIZE * 2 + PATCH_SIZE * 3;
 	// FYI: Uncomment if necessary to show wireframe model
-	glDrawElementsInstanced(GL_TRIANGLE_STRIP, count, GL_UNSIGNED_INT, 0, visiblePatches);
+	glPatchParameteri(GL_PATCH_VERTICES, 4);
+	glDrawElementsInstanced(GL_PATCHES, visiblePatches, GL_UNSIGNED_INT, 0, visiblePatches);
 	
 	//Render text
 	nvgBeginFrame(mNVGContext, width(), height(), mPixelRatio);

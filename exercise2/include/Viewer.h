@@ -39,8 +39,6 @@ private:
 
 	nse::gui::GLShader terrainShader;
 	nse::gui::GLVertexArray terrainVAO;
-	nse::gui::GLBuffer terrainPositions;
-	nse::gui::GLBuffer terrainIndices;
 
 	nse::gui::GLVertexArray grassVAO;
 
