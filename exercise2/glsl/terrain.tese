@@ -12,7 +12,7 @@ uniform float perlinNoise1Height;
 uniform float perlinNoise2Height;
 uniform float waterHeight;
 
-in vec3 TCS_position[];
+in vec3 TEC_position[];
 
 out vec3 FRAG_normals;
 out vec3 FRAG_position;
@@ -97,8 +97,8 @@ void main(){
     float v = gl_TessCoord.y;
 
     // Calculate mean position of the tessellated quad
-    vec3 a = mix(TCS_position[0], TCS_position[1], u);
-    vec3 b = mix(TCS_position[2], TCS_position[3], u);
+    vec3 a = mix(TEC_position[0], TEC_position[1], u);
+    vec3 b = mix(TEC_position[2], TEC_position[3], u);
 
     vec3 position = mix(a, b, v);
 

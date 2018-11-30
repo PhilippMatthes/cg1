@@ -7,6 +7,8 @@
 in vec3 FRAG_normals;
 in vec3 FRAG_position;
 in float FRAG_waterFactor;
+in vec4 position;
+
 
 out vec4 color;
 

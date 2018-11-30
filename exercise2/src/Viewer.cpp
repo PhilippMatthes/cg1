@@ -21,8 +21,8 @@ const uint32_t PATCH_SIZE = 256; //number of vertices along one side of the terr
 
 Viewer::Viewer()
 	: AbstractViewer("CG1 Exercise 2"),
-	offsetBuffer(nse::gui::VertexBuffer)
-{ 
+	positionBuffer(nse::gui::VertexBuffer), indexBuffer(nse::gui::IndexBuffer)
+{
 	LoadShaders();
 	CreateGeometry();
 
@@ -32,6 +32,8 @@ Viewer::Viewer()
 	glGenFramebuffers(1, &backgroundFBO);	
 	glGenTextures(1, &backgroundTexture);
 
+	// The following steps are necessary on linux, otherwise the background
+	// will not attach correctly
 	glBindFramebuffer(GL_FRAMEBUFFER, backgroundFBO);
 	glBindTexture(GL_TEXTURE_2D, backgroundTexture);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
@@ -45,9 +47,9 @@ Viewer::Viewer()
 	auto mainWindow = SetupMainWindow();
 
 	sldPerlin1Frequency = nse::gui::AddLabeledSliderWithDefaultDisplay(mainWindow, "Perlin 1 Frequency", std::make_pair(0.001f, 0.05f), 0.02f, 2);
-        sldPerlin2Frequency = nse::gui::AddLabeledSliderWithDefaultDisplay(mainWindow, "Perlin 2 Frequency", std::make_pair(0.001f, 0.05f), 0.01f, 2);
-        sldPerlin1Height = nse::gui::AddLabeledSliderWithDefaultDisplay(mainWindow, "Perlin 1 Height", std::make_pair(0.0f, 4.0f), 4.0f, 2);
-        sldPerlin2Height = nse::gui::AddLabeledSliderWithDefaultDisplay(mainWindow, "Perlin 2 Height", std::make_pair(0.0f, 4.0f), 1.95f, 2);
+	sldPerlin2Frequency = nse::gui::AddLabeledSliderWithDefaultDisplay(mainWindow, "Perlin 2 Frequency", std::make_pair(0.001f, 0.05f), 0.01f, 2);
+	sldPerlin1Height = nse::gui::AddLabeledSliderWithDefaultDisplay(mainWindow, "Perlin 1 Height", std::make_pair(0.0f, 4.0f), 4.0f, 2);
+	sldPerlin2Height = nse::gui::AddLabeledSliderWithDefaultDisplay(mainWindow, "Perlin 2 Height", std::make_pair(0.0f, 4.0f), 1.95f, 2);
     sldWaterHeight = nse::gui::AddLabeledSliderWithDefaultDisplay(mainWindow, "Water Height", std::make_pair(0.0f, 10.0f), 0.1f, 2);
 
 	performLayout();
@@ -183,6 +185,29 @@ GLuint CreateTexture(const unsigned char* fileData, size_t fileLength, bool repe
 	return tex;
 }
 
+void Viewer::PrintAttributes(GLuint program)
+{
+	GLint i;
+	GLint count;
+
+	GLint size; // size of the variable
+	GLenum type; // type of the variable (float, vec3 or mat4, etc)
+
+	const GLsizei bufSize = 16; // maximum name length
+	GLchar name[bufSize]; // variable name in GLSL
+	GLsizei length; // name length
+
+	glGetProgramiv(program, GL_ACTIVE_ATTRIBUTES, &count);
+	printf("Active Attributes: %d\n", count);
+
+	for (i = 0; i < count; i++)
+	{
+		glGetActiveAttrib(program, (GLuint)i, bufSize, &length, &size, &type, name);
+
+		printf("Attribute #%d Type: %u Name: %s\n", i, type, name);
+	}
+}
+
 void Viewer::CreateGeometry()
 {
 	//empty VAO for sky
@@ -192,13 +217,18 @@ void Viewer::CreateGeometry()
 	terrainVAO.generate();
 	terrainVAO.bind();
 
+	std::vector<Eigen::Vector4f> positions;
+	std::vector<uint32_t> indices;
+
 	terrainShader.bind();
-	
-	offsetBuffer.bind();
-    GLuint offset = static_cast<GLuint>(terrainShader.attrib("offset"));
-    glEnableVertexAttribArray(offset);
-    glVertexAttribPointer(offset, 2, GL_FLOAT, GL_FALSE, 0, 0);
-	glVertexAttribDivisor(offset, 1);
+
+	PrintAttributes(terrainShader.mProgramShader);
+
+	positionBuffer.bind();
+	positionBuffer.uploadData(positions).bindToAttribute("position");
+
+	indexBuffer.bind();
+	indexBuffer.uploadData(indices.size() * sizeof(uint32_t), indices.data());
 
 	std::cout << "Creating textures ..." << std::endl;
 
@@ -303,7 +333,8 @@ void Viewer::drawContents()
 	int clampedMaxZ = maxZ - (maxZ % PATCH_SIZE);
 
 	int visiblePatches = 0;
-	std::vector<Eigen::Vector4f> offsets;
+	std::vector<Eigen::Vector4f> positions;
+	std::vector<uint32_t> indices;
 
 	for (int x = clampedMinX; x <= clampedMaxX; x += PATCH_SIZE) {
 		for (int z = clampedMinZ; z <= clampedMaxZ; z += PATCH_SIZE) {
@@ -320,16 +351,17 @@ void Viewer::drawContents()
 				}
 			}
 			if (!isBehind) {
-				offsets.emplace_back((float) x, 0, (float) z, 1);
+				positions.emplace_back((float) x, 0, (float) z, 1);
+				indices.emplace_back(x+z);
 				visiblePatches += 1;
 			}
 		}
 	}
-	
-	terrainShader.bind();
+
 	std::cout << "Upload data...";
-  	offsetBuffer.uploadData(offsets);
-  	offsetBuffer.bindToAttribute("position");
+	terrainShader.bind();
+  	positionBuffer.uploadData(positions).bindToAttribute("position");
+	indexBuffer.uploadData(indices.size() * sizeof(uint32_t), indices.data());
 	std::cout << "finished." << "\n";
 
 	RenderSky();
@@ -337,6 +369,7 @@ void Viewer::drawContents()
 	//render terrain
 	glEnable(GL_DEPTH_TEST);
 	terrainVAO.bind();
+	terrainShader.bind();
 
 	terrainShader.setUniform("screenSize", Eigen::Vector2f(width(), height()), false);
 	terrainShader.setUniform("mvp", mvp);

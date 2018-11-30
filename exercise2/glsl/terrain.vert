@@ -5,6 +5,7 @@
 #version 430
 
 in vec4 position;
+
 out vec3 TCS_Position;
 
 void main()

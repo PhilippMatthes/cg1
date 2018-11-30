@@ -16,6 +16,7 @@ public:
 
 	void LoadShaders();
 	void CreateGeometry();
+	void PrintAttributes(GLuint program);
 
 	void drawContents();	
 	bool resizeEvent(const Eigen::Vector2i&);
@@ -44,7 +45,8 @@ private:
 
 	GLuint grassTexture, rockTexture, roadColorTexture, roadNormalMap, roadSpecularMap, alphaMap, skybox, waterTexture, waterNormalMap;
 
-	nse::gui::GLBuffer offsetBuffer;
+	nse::gui::GLBuffer positionBuffer;
+	nse::gui::GLBuffer indexBuffer;
 
 	GLuint backgroundFBO, backgroundTexture;
 };

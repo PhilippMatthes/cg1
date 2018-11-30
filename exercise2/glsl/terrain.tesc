@@ -5,8 +5,6 @@
 
 layout(vertices = 4) out;
 
-uniform vec2 screenSize;
-uniform mat4 mvp;
 
 in vec3 TCS_position[];
 out vec3 TEC_position[];
