@@ -78,7 +78,7 @@ float getWaterHeight(vec2 p) {;
 
 vec3 calculateNormals(vec2 p) {
     // Based on: https://stackoverflow.com/questions/13983189/opengl-how-to-calculate-normals-in-a-terrain-height-grid
-    vec3 off = vec3(0.1, 0.1, 0.0);
+    vec3 off = vec3(0.5, 0.0, 0.5);
     float hL = getTerrainHeight(p.xy - off.xz);
     float hR = getTerrainHeight(p.xy + off.xz);
     float hD = getTerrainHeight(p.xy - off.zy);
@@ -114,7 +114,7 @@ void main(){
     FRAG_snowFactor = clamp(snowHeight - terrainHeight, 0.0, 1.0);
 
     terrainHeight = mix(getWaterHeight(worldSpacePosition.xz), terrainHeight, FRAG_waterFactor);
-    vec4 heightCorrectedPosition = vec4(worldSpacePosition.x, worldSpacePosition.y + terrainHeight, worldSpacePosition.z, 1);
+    vec4 heightCorrectedPosition = vec4(worldSpacePosition.x, terrainHeight, worldSpacePosition.z, 1);
 
     gl_Position = mvp * heightCorrectedPosition;
 

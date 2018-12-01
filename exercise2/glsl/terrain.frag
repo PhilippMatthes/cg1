@@ -136,7 +136,7 @@ vec4 waterColor(vec3 dirToLight) {
     float specular = 1.0;
     vec4 colorMaterial = 0.5 * texture(waterTexture, animatedTextureCoordinates);
 
-    vec3 waterNormals = 0.5 * texture(waterNormalMap, animatedTextureCoordinates).xyz;
+    vec3 waterNormals = mix(texture(waterNormalMap, animatedTextureCoordinates).xyz, FRAG_normals, 0.5);
 
     vec4 colorReflection = mix(colorMaterial, getReflectionColor(waterNormals), 0.5);
     vec4 colorLighting = calculateLighting(colorReflection, specular, waterNormals, dirToLight);
@@ -144,10 +144,10 @@ vec4 waterColor(vec3 dirToLight) {
 }
 
 vec4 snowColor(vec3 dirToLight) {
-    vec2 textureCoordinates = FRAG_position.xz * 10/255;
+    vec2 textureCoordinates = FRAG_position.xz * 0.01;
     float specular = 1.0;
     vec4 colorMaterial = texture(snowTexture, textureCoordinates);
-    vec3 snowNormals = 0.5 * texture(snowNormalMap, textureCoordinates).xyz;
+    vec3 snowNormals = mix(texture(snowNormalMap, textureCoordinates).xyz, FRAG_normals, 0.5);
     vec4 colorReflection = mix(colorMaterial, getReflectionColor(snowNormals), 0.3);
     vec4 colorLighting = calculateLighting(colorReflection, specular, snowNormals, dirToLight);
     return colorLighting;
@@ -158,8 +158,8 @@ void main()
     // For Oren-Nayar lighting, uncomment the following:
     // Based on: https://stackoverflow.com/questions/40583715/oren-nayar-lighting-in-opengl-how-to-calculate-view-direction-in-fragment-shade#40596525
     vec3 dirToLight = vec3(1, 1, 0);
-    // vec3 dirToViewer = normalize(vec3(-(gl_FragCoord.xy - screenSize/2) / (screenSize/4), 1.0));
-    // vec3 dirToViewer = normalize(-fragmentPosition); //viewer is at the origin in camera space
+    // vec3 dirToLight = normalize(vec3(-(gl_FragCoord.xy - screenSize/2) / (screenSize/4), 1.0));
+    // vec3 dirToLight = normalize(-fragmentPosition); //viewer is at the origin in camera space
     color = mix(waterColor(dirToLight), terrainColor(dirToLight), FRAG_waterFactor);
     color = mix(snowColor(dirToLight), color, FRAG_snowFactor);
     color = mix(getBackgroundColor(), color, getFogFactor());
