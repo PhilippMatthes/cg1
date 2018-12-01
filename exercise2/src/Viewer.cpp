@@ -18,7 +18,6 @@
 #include "textures.h"
 
 const uint32_t PATCH_SIZE = 256;
-const uint32_t STEP_SIZE = PATCH_SIZE;
 
 Viewer::Viewer()
 	: AbstractViewer("CG1 Exercise 2"),
@@ -233,18 +232,12 @@ void Viewer::CreateGeometry()
 
 	std::vector<Eigen::Vector4f> positions;
 
-	for (int v = 0; v < PATCH_SIZE; v += STEP_SIZE) {
-		positions.emplace_back(v, 0, 0, 1);
-	}
-	for (int v = 0; v < PATCH_SIZE; v += STEP_SIZE) {
-		positions.emplace_back(PATCH_SIZE, 0, v, 1);
-	}
-	for (int v = 0; v < PATCH_SIZE; v += STEP_SIZE) {
-		positions.emplace_back(0, 0, PATCH_SIZE - v, 1);
-	}
-	for (int v = 0; v < PATCH_SIZE; v += STEP_SIZE) {
-		positions.emplace_back(PATCH_SIZE - v, 0, PATCH_SIZE, 1);
-	}
+    for (int x = 0; x <= 3; x += 1) {
+        for (int y = 0; y <= 3; y += 1) {
+        	int scale = PATCH_SIZE / 3;
+            positions.emplace_back(x * scale, 0, y * scale, 1);
+        }
+    }
 
 	positionBuffer.bind();
 	positionBuffer.uploadData(positions).bindToAttribute("position");
@@ -457,11 +450,11 @@ void Viewer::drawContents()
 	glClearDepth(1);
 	glEnable(GL_DEPTH_TEST);
 
-	glPatchParameteri(GL_PATCH_VERTICES, (PATCH_SIZE/STEP_SIZE) * 4);
+	glPatchParameteri(GL_PATCH_VERTICES, 16);
 
 	// glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 	// glDrawArrays(GL_PATCHES, 0, 4);
-	glDrawArraysInstanced(GL_PATCHES, 0, ((PATCH_SIZE/STEP_SIZE) * 4), visiblePatches);
+	glDrawArraysInstanced(GL_PATCHES, 0, 16, visiblePatches);
 	// glDrawElementsInstanced(GL_PATCHES, visiblePatches, GL_UNSIGNED_INT, 0, visiblePatches);
 	
 	//Render text

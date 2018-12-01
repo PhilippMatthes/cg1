@@ -3,7 +3,7 @@
 // Tessellation Control Shader
 // http://codeflow.org/entries/2010/nov/07/opengl-4-tessellation/
 
-layout(vertices = 4) out;
+layout(vertices = 16) out;
 
 
 in vec3 TCS_position[];

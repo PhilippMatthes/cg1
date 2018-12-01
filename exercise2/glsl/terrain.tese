@@ -97,10 +97,10 @@ vec3 calculateNormals(vec2 p) {
 void main(){
     // Interpolate along bottom edge using x component of the
     // tessellation coordinate
-    vec3 p1 = mix(TEC_position[0], TEC_position[1], gl_TessCoord.x);
+    vec3 p1 = mix(TEC_position[0], TEC_position[3], gl_TessCoord.x);
     // Interpolate along top edge using x component of the
     // tessellation coordinate
-    vec3 p2 = mix(TEC_position[2], TEC_position[3], gl_TessCoord.x);
+    vec3 p2 = mix(TEC_position[12], TEC_position[15], gl_TessCoord.x);
     // Now interpolate those two results using the y component
     // of tessellation coordinate
     vec4 position = vec4(mix(p1, p2, gl_TessCoord.y), 1);
