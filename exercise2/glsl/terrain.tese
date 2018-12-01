@@ -3,7 +3,7 @@
 // Tessellation Evaluation Shader
 // http://codeflow.org/entries/2010/nov/07/opengl-4-tessellation/
 
-layout(quads) in;
+layout(quads, equal_spacing, cw) in;
 
 
 uniform float perlinNoise1Frequency;
@@ -11,17 +11,18 @@ uniform float perlinNoise2Frequency;
 uniform float perlinNoise1Height;
 uniform float perlinNoise2Height;
 uniform float waterHeight;
+uniform float snowHeight;
+uniform mat4 mvp;
+uniform mat4 mv;
 uniform mat4 projection;
+uniform float animation;
 
 in vec3 TEC_position[];
 
 out vec3 FRAG_normals;
 out vec3 FRAG_position;
 out float FRAG_waterFactor;
-
-
-uniform mat4 mvp;
-uniform float animation;
+out float FRAG_snowFactor;
 
 
 //source: https://gist.github.com/patriciogonzalezvivo/670c22f3966e662d2f83
@@ -104,14 +105,18 @@ void main(){
     // of tessellation coordinate
     vec4 position = vec4(mix(p1, p2, gl_TessCoord.y), 1);
 
-    FRAG_normals = calculateNormals(position.xz);
-    float terrainHeight = getTerrainHeight(position.xz);
+    vec4 worldSpacePosition = (inverse(mv) * position);
+
+    FRAG_normals = calculateNormals(worldSpacePosition.xz);
+    float terrainHeight = getTerrainHeight(worldSpacePosition.xz);
 
     FRAG_waterFactor = clamp(terrainHeight - waterHeight, 0.0, 1.0);
-    terrainHeight = mix(getWaterHeight(position.xz), terrainHeight, FRAG_waterFactor);
-    vec4 heightCorrectedPosition = vec4(position.x, position.y + terrainHeight, position.z, 1);
+    FRAG_snowFactor = clamp(snowHeight - terrainHeight, 0.0, 1.0);
 
-    gl_Position = mvp * position;
+    terrainHeight = mix(getWaterHeight(worldSpacePosition.xz), terrainHeight, FRAG_waterFactor);
+    vec4 heightCorrectedPosition = vec4(worldSpacePosition.x, worldSpacePosition.y + terrainHeight, worldSpacePosition.z, 1);
 
-    FRAG_position = position.xyz;
+    gl_Position = mvp * heightCorrectedPosition;
+
+    FRAG_position = heightCorrectedPosition.xyz;
 }

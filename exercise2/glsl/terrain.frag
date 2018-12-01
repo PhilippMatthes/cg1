@@ -7,7 +7,7 @@
 in vec3 FRAG_normals;
 in vec3 FRAG_position;
 in float FRAG_waterFactor;
-in vec4 position;
+in float FRAG_snowFactor;
 
 
 out vec4 color;
@@ -22,6 +22,8 @@ uniform sampler2D background;
 uniform samplerCube skybox;
 uniform sampler2D waterTexture;
 uniform sampler2D waterNormalMap;
+uniform sampler2D snowTexture;
+uniform sampler2D snowNormalMap;
 
 uniform float animation;
 
@@ -29,6 +31,7 @@ uniform vec3 cameraPos;
 uniform vec2 screenSize;
 
 uniform float waterHeight;
+uniform float snowHeight;
 
 const vec3 dirToLight = normalize(vec3(1, 3, 1));
 const float FogDensity = 0.006;
@@ -43,10 +46,10 @@ vec4 calculateLighting(vec4 materialColor, float specularIntensity, vec3 normali
 	return color;
 }
 
-vec4 getReflectionColor() {
+vec4 getReflectionColor(vec3 normals) {
     // https://darrensweeney.net/2015/12/17/opengl-skybox-rendering/
     vec3 I = normalize(FRAG_position - cameraPos);
-    vec3 R = reflect(I, normalize(FRAG_normals));
+    vec3 R = reflect(I, normalize(normals));
     return texture(skybox, -R);
 }
 
@@ -59,8 +62,7 @@ float getFogFactor()
 {
     float dist = gl_FragCoord.z / gl_FragCoord.w;
     float fogFactor = 1.0 /exp( (dist * FogDensity)* (dist * FogDensity));
-    fogFactor = clamp( fogFactor, 0.0, 1.0 );
-    return fogFactor;
+    return clamp( fogFactor, 0.0, 1.0 );
 }
 
 //Based on: https://github.com/NSchertler/CG1/blob/master/glsl/texturedMesh.frag
@@ -125,7 +127,7 @@ vec4 terrainColor(vec3 dirToLight) {
     float blendedSpecular = alphaMapColor.x * roadSpecular;
     color = calculateLighting(color, blendedSpecular, blendedNormals, dirToLight);
 
-    return mix(getBackgroundColor(), color, getFogFactor());
+    return color;
 }
 
 vec4 waterColor(vec3 dirToLight) {
@@ -134,11 +136,21 @@ vec4 waterColor(vec3 dirToLight) {
     float specular = 1.0;
     vec4 colorMaterial = 0.5 * texture(waterTexture, animatedTextureCoordinates);
 
-    vec3 FRAG_normals = 0.5 * texture(waterNormalMap, animatedTextureCoordinates).xyz;
+    vec3 waterNormals = 0.5 * texture(waterNormalMap, animatedTextureCoordinates).xyz;
 
-    vec4 colorReflection = mix(colorMaterial, getReflectionColor(), 0.5);
-    vec4 colorLighting = calculateLighting(colorReflection, specular, FRAG_normals, dirToLight);
-    return mix(getBackgroundColor(), colorLighting, getFogFactor());
+    vec4 colorReflection = mix(colorMaterial, getReflectionColor(waterNormals), 0.5);
+    vec4 colorLighting = calculateLighting(colorReflection, specular, waterNormals, dirToLight);
+    return colorLighting;
+}
+
+vec4 snowColor(vec3 dirToLight) {
+    vec2 textureCoordinates = FRAG_position.xz * 10/255;
+    float specular = 1.0;
+    vec4 colorMaterial = texture(snowTexture, textureCoordinates);
+    vec3 snowNormals = 0.5 * texture(snowNormalMap, textureCoordinates).xyz;
+    vec4 colorReflection = mix(colorMaterial, getReflectionColor(snowNormals), 0.3);
+    vec4 colorLighting = calculateLighting(colorReflection, specular, snowNormals, dirToLight);
+    return colorLighting;
 }
 
 void main()
@@ -149,4 +161,6 @@ void main()
     // vec3 dirToViewer = normalize(vec3(-(gl_FragCoord.xy - screenSize/2) / (screenSize/4), 1.0));
     // vec3 dirToViewer = normalize(-fragmentPosition); //viewer is at the origin in camera space
     color = mix(waterColor(dirToLight), terrainColor(dirToLight), FRAG_waterFactor);
+    color = mix(snowColor(dirToLight), color, FRAG_snowFactor);
+    color = mix(getBackgroundColor(), color, getFogFactor());
 }

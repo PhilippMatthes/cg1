@@ -17,11 +17,12 @@
 #include "glsl.h"
 #include "textures.h"
 
-const uint32_t PATCH_SIZE = 256; //number of vertices along one side of the terrain patch
+const uint32_t PATCH_SIZE = 256;
+const uint32_t STEP_SIZE = PATCH_SIZE;
 
 Viewer::Viewer()
 	: AbstractViewer("CG1 Exercise 2"),
-	positionBuffer(nse::gui::VertexBuffer), indexBuffer(nse::gui::IndexBuffer)
+	positionBuffer(nse::gui::VertexBuffer), offsetBuffer(nse::gui::VertexBuffer)
 {
 	LoadShaders();
 	CreateGeometry();
@@ -51,6 +52,8 @@ Viewer::Viewer()
 	sldPerlin1Height = nse::gui::AddLabeledSliderWithDefaultDisplay(mainWindow, "Perlin 1 Height", std::make_pair(0.0f, 4.0f), 4.0f, 2);
 	sldPerlin2Height = nse::gui::AddLabeledSliderWithDefaultDisplay(mainWindow, "Perlin 2 Height", std::make_pair(0.0f, 4.0f), 1.95f, 2);
     sldWaterHeight = nse::gui::AddLabeledSliderWithDefaultDisplay(mainWindow, "Water Height", std::make_pair(0.0f, 10.0f), 0.1f, 2);
+	sldSnowHeight = nse::gui::AddLabeledSliderWithDefaultDisplay(mainWindow, "Water Height", std::make_pair(0.0f, 20.0f), 10.0f, 2);
+	sldLOD = nse::gui::AddLabeledSliderWithDefaultDisplay(mainWindow, "Tessellation level", std::make_pair(1.0f, 128.0f), 128.0f, 2);
 
 	performLayout();
 
@@ -217,11 +220,34 @@ void Viewer::CreateGeometry()
 	terrainVAO.generate();
 	terrainVAO.bind();
 
-	std::vector<Eigen::Vector4f> positions;
-	std::vector<uint32_t> indices;
-
 	terrainShader.bind();
 	PrintAttributes(terrainShader.mProgramShader);
+
+	// Task 2.2.5 a)
+	// See: https://tu-dresden.de/ing/informatik/smt/cgv/ressourcen/dateien/lehre/ws-18-19/cg1/CGI_03_Geometry.pdf?lang=de
+	offsetBuffer.bind();
+	GLuint offset = static_cast<GLuint>(terrainShader.attrib("offset"));
+	glEnableVertexAttribArray(offset);
+	glVertexAttribPointer(offset, 2, GL_FLOAT, GL_FALSE, 0, 0);
+	glVertexAttribDivisor(offset, 1);
+
+	std::vector<Eigen::Vector4f> positions;
+
+	for (int v = 0; v < PATCH_SIZE; v += STEP_SIZE) {
+		positions.emplace_back(v, 0, 0, 1);
+	}
+	for (int v = 0; v < PATCH_SIZE; v += STEP_SIZE) {
+		positions.emplace_back(PATCH_SIZE, 0, v, 1);
+	}
+	for (int v = 0; v < PATCH_SIZE; v += STEP_SIZE) {
+		positions.emplace_back(0, 0, PATCH_SIZE - v, 1);
+	}
+	for (int v = 0; v < PATCH_SIZE; v += STEP_SIZE) {
+		positions.emplace_back(PATCH_SIZE - v, 0, PATCH_SIZE, 1);
+	}
+
+	positionBuffer.bind();
+	positionBuffer.uploadData(positions).bindToAttribute("position");
 
 	std::cout << "Creating textures ..." << std::endl;
 
@@ -233,6 +259,8 @@ void Viewer::CreateGeometry()
 	roadSpecularMap = CreateTexture((unsigned char*)roadspecular_jpg, roadspecular_jpg_size);
 	waterNormalMap = CreateTexture((unsigned char*)waternormals_jpg, waternormals_jpg_size);
 	waterTexture = CreateTexture((unsigned char*)watertexture_jpg, watertexture_jpg_size);
+	snowTexture = CreateTexture((unsigned char*)snow_jpg, snow_jpg_size);
+    snowNormalMap = CreateTexture((unsigned char*)snownormals_jpg, snownormals_jpg_size);
 
     skybox = loadCubemap();
 
@@ -334,8 +362,8 @@ void Viewer::drawContents()
 	int clampedMaxZ = maxZ - (maxZ % PATCH_SIZE);
 
 	int visiblePatches = 0;
-	std::vector<Eigen::Vector4f> positions;
-	std::vector<uint32_t> indices;
+
+	std::vector<Eigen::Vector4f> offsets;
 
 	for (int x = clampedMinX; x <= clampedMaxX; x += PATCH_SIZE) {
 		for (int z = clampedMinZ; z <= clampedMaxZ; z += PATCH_SIZE) {
@@ -352,24 +380,19 @@ void Viewer::drawContents()
 				}
 			}
 			if (!isBehind) {
-				positions.emplace_back((float) x, 0, (float) z, 1);
-				indices.emplace_back(visiblePatches);
+				offsets.emplace_back((float) x, 0, (float) z, 1);
 
 				visiblePatches += 1;
 			}
 		}
 	}
 
-	positionBuffer.bind();
-	positionBuffer.uploadData(positions).bindToAttribute("position");
+	offsetBuffer.uploadData(offsets);
 
-	indexBuffer.bind();
-	indexBuffer.uploadData(indices.size() * sizeof(uint32_t), indices.data());
-
-	terrainShader.setUniform("mvp", mvp);
+	terrainShader.setUniform("mvp", mvp, false);
 	terrainShader.setUniform("screenSize", Eigen::Vector2f(width(), height()));
-	terrainShader.setUniform("mv", view);
-	terrainShader.setUniform("projection", proj);
+	terrainShader.setUniform("mv", view, false);
+	terrainShader.setUniform("projection", proj, false);
 	terrainShader.setUniform("cameraPos", cameraPosition);
 
     terrainShader.setUniform("animation", animation);
@@ -379,6 +402,8 @@ void Viewer::drawContents()
 	terrainShader.setUniform("perlinNoise1Height", sldPerlin1Height->value());
 	terrainShader.setUniform("perlinNoise2Height", sldPerlin2Height->value());
     terrainShader.setUniform("waterHeight", sldWaterHeight->value());
+	terrainShader.setUniform("snowHeight", sldSnowHeight->value());
+	terrainShader.setUniform("lod", sldLOD->value());
 
 	/* Task: Render the terrain */
 	glActiveTexture(GL_TEXTURE0);
@@ -411,22 +436,33 @@ void Viewer::drawContents()
 
 	glActiveTexture(GL_TEXTURE7);
 	glBindTexture(GL_TEXTURE_CUBE_MAP, skybox);
-        terrainShader.setUniform("skybox", 7, skybox);
+	terrainShader.setUniform("skybox", 7, false);
 
 	glActiveTexture(GL_TEXTURE8);
 	glBindTexture(GL_TEXTURE_2D, waterNormalMap);
-        terrainShader.setUniform("waterNormalMap", 8, false);
+	terrainShader.setUniform("waterNormalMap", 8, false);
 
 	glActiveTexture(GL_TEXTURE9);
 	glBindTexture(GL_TEXTURE_2D, waterTexture);
-        terrainShader.setUniform("waterTexture", 9, false);
+	terrainShader.setUniform("waterTexture", 9, false);
+
+    glActiveTexture(GL_TEXTURE10);
+    glBindTexture(GL_TEXTURE_2D, snowTexture);
+    terrainShader.setUniform("snowTexture", 10, false);
+
+	glActiveTexture(GL_TEXTURE11);
+	glBindTexture(GL_TEXTURE_2D, snowNormalMap);
+	terrainShader.setUniform("snowNormalMap", 11, false);
 
 	glClearDepth(1);
 	glEnable(GL_DEPTH_TEST);
 
-	glPatchParameteri(GL_PATCH_VERTICES, 4);
+	glPatchParameteri(GL_PATCH_VERTICES, (PATCH_SIZE/STEP_SIZE) * 4);
+
 	// glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-	glDrawElementsInstanced(GL_PATCHES, visiblePatches, GL_UNSIGNED_INT, 0, visiblePatches);
+	// glDrawArrays(GL_PATCHES, 0, 4);
+	glDrawArraysInstanced(GL_PATCHES, 0, ((PATCH_SIZE/STEP_SIZE) * 4), visiblePatches);
+	// glDrawElementsInstanced(GL_PATCHES, visiblePatches, GL_UNSIGNED_INT, 0, visiblePatches);
 	
 	//Render text
 	nvgBeginFrame(mNVGContext, width(), height(), mPixelRatio);

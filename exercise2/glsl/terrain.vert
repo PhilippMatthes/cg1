@@ -5,12 +5,17 @@
 #version 430
 
 in vec4 position;
+in vec4 offset;
 
 out vec3 TCS_position;
 
+uniform mat4 mvp;
+uniform mat4 mv;
+uniform mat4 projection;
+
 void main()
 {
-    // Pass through position to Tessellation Control Shader
-    // But first, offset the position in terms of instanced rendering
-    TCS_position = position.xyz;
+    // vec4 offsetPosition = position + offset;
+    gl_Position = (mvp * position);
+    TCS_position = (mv * position).xyz;
 }

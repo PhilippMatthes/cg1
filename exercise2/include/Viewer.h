@@ -32,6 +32,8 @@ private:
 	nanogui::Slider* sldPerlin1Frequency;
 	nanogui::Slider* sldPerlin2Frequency;
 	nanogui::Slider* sldWaterHeight;
+    nanogui::Slider* sldSnowHeight;
+	nanogui::Slider* sldLOD;
 
 	float animation;
 
@@ -43,10 +45,10 @@ private:
 
 	nse::gui::GLVertexArray grassVAO;
 
-	GLuint grassTexture, rockTexture, roadColorTexture, roadNormalMap, roadSpecularMap, alphaMap, skybox, waterTexture, waterNormalMap;
+	GLuint grassTexture, rockTexture, roadColorTexture, roadNormalMap, roadSpecularMap, alphaMap, skybox, waterTexture, waterNormalMap, snowTexture, snowNormalMap;
 
 	nse::gui::GLBuffer positionBuffer;
-	nse::gui::GLBuffer indexBuffer;
+	nse::gui::GLBuffer offsetBuffer;
 
 	GLuint backgroundFBO, backgroundTexture;
 };

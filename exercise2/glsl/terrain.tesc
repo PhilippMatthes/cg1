@@ -10,6 +10,7 @@ in vec3 TCS_position[];
 out vec3 TEC_position[];
 
 // https://prideout.net/blog/old/blog/index.html@p=48.html
+uniform float lod;
 
 void main(){
      #define id gl_InvocationID
@@ -27,13 +28,13 @@ void main(){
          * because the tessellation of one inner vertex is mirrored on the
          * opposite one.
          */
-        gl_TessLevelInner[0] = 64;
-        gl_TessLevelInner[1] = 64;
+        gl_TessLevelInner[0] = lod;
+        gl_TessLevelInner[1] = lod;
 
-        gl_TessLevelOuter[0] = 64;
-        gl_TessLevelOuter[1] = 64;
-        gl_TessLevelOuter[2] = 64;
-        gl_TessLevelOuter[3] = 64;
+        gl_TessLevelOuter[0] = lod;
+        gl_TessLevelOuter[1] = lod;
+        gl_TessLevelOuter[2] = lod;
+        gl_TessLevelOuter[3] = lod;
      }
      // On invocation of any other vertex than the first,
      // pass through the generated vertex to the Fragment Shader.
