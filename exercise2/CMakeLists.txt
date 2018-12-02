@@ -5,7 +5,7 @@ ProcessGLSLFiles(GLSL_FILES)
 
 add_definitions(-DHAVE_TESSELLATION=true)
 
-set(TEXTURE_FILES grass.jpg rock.jpg roadColor.jpg roadNormals.jpg roadSpecular.jpg alpha.jpg back.jpg bottom.jpg front.jpg left.jpg right.jpg top.jpg waterNormals.jpg waterTexture.jpg)
+set(TEXTURE_FILES grass.jpg rock.jpg roadColor.jpg roadNormals.jpg roadSpecular.jpg alpha.jpg back.jpg bottom.jpg front.jpg left.jpg right.jpg top.jpg waterNormals.jpg waterTexture.jpg snow.jpg snowNormals.jpg)
 PREPEND(TEXTURE_FILES "${CMAKE_CURRENT_SOURCE_DIR}/resources/" ${TEXTURE_FILES})
 JOIN("${TEXTURE_FILES}" "," texture_string)
 set(bin2c_cmdline

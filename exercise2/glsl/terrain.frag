@@ -2,10 +2,13 @@
 // chair of the TU Dresden. Do not distribute! 
 // Copyright (C) CGV TU Dresden - All Rights Reserved
 
-#version 330
+#version 430
 
-in vec3 normals;
-in vec4 vertexPosition;
+in vec3 FRAG_normals;
+in vec3 FRAG_position;
+in float FRAG_waterFactor;
+in float FRAG_snowFactor;
+
 
 out vec4 color;
 
@@ -15,13 +18,12 @@ uniform sampler2D roadColorTexture;
 uniform sampler2D alphaMap;
 uniform sampler2D roadSpecularMap;
 uniform sampler2D roadNormalMap;
-
 uniform sampler2D background;
-
 uniform samplerCube skybox;
-
 uniform sampler2D waterTexture;
 uniform sampler2D waterNormalMap;
+uniform sampler2D snowTexture;
+uniform sampler2D snowNormalMap;
 
 uniform float animation;
 
@@ -29,6 +31,7 @@ uniform vec3 cameraPos;
 uniform vec2 screenSize;
 
 uniform float waterHeight;
+uniform float snowHeight;
 
 uniform float brightness;
 uniform float contrast;
@@ -37,7 +40,6 @@ in float waterFactor;
 
 const vec3 dirToLight = normalize(vec3(1, 3, 1));
 const float FogDensity = 0.006;
-const vec4 fogColor = vec4(0.5, 0.5,0.5,1);
 
 //Calculates the visible surface color based on the Blinn-Phong illumination model
 vec4 calculateLighting(vec4 materialColor, float specularIntensity, vec3 normalizedNormal, vec3 directionToViewer)
@@ -51,7 +53,7 @@ vec4 calculateLighting(vec4 materialColor, float specularIntensity, vec3 normali
 
 vec4 getReflectionColor(vec3 normals) {
     // https://darrensweeney.net/2015/12/17/opengl-skybox-rendering/
-    vec3 I = normalize(vertexPosition.xyz - cameraPos);
+    vec3 I = normalize(FRAG_position - cameraPos);
     vec3 R = reflect(I, normalize(normals));
     return texture(skybox, -R);
 }
@@ -65,8 +67,7 @@ float getFogFactor()
 {
     float dist = gl_FragCoord.z / gl_FragCoord.w;
     float fogFactor = 1.0 /exp( (dist * FogDensity)* (dist * FogDensity));
-    fogFactor = clamp( fogFactor, 0.0, 1.0 );
-    return fogFactor;
+    return clamp( fogFactor, 0.0, 1.0 );
 }
 
 //Based on: https://github.com/NSchertler/CG1/blob/master/glsl/texturedMesh.frag
@@ -93,24 +94,24 @@ void calculateTangentSpace( vec3 N, vec3 p, vec2 uv, out mat3 tangentSpaceToView
     viewSpaceToTangentSpace = transpose(mat3( T, B, N ));
 }
 
-vec4 terrainColor(vec3 fragmentPosition, vec3 dirToLight) {
-    vec2 textureCoordinates = vertexPosition.xz * 10/255;
-	vec3 n = normalize(normals);
+vec4 terrainColor(vec3 dirToLight) {
+    vec2 textureCoordinates = FRAG_position.xz * 10/255;
+	vec3 n = normalize(FRAG_normals);
 
 	mat3 tangentSpaceToViewSpace, viewSpaceToTangentSpace;
-	calculateTangentSpace(n, fragmentPosition, textureCoordinates, tangentSpaceToViewSpace, viewSpaceToTangentSpace);
+	calculateTangentSpace(n, FRAG_position, textureCoordinates, tangentSpaceToViewSpace, viewSpaceToTangentSpace);
 
 	//material properties
     // Task 2.2.4 + 2.2.3
     // Based on: http://thedemonthrone.ca/projects/rendering-terrain/rendering-terrain-part-23-height-and-slope-based-colours/
     // Calculate terrain color
-	float slope = acos(normals.z);
+	float slope = acos(FRAG_normals.z);
     float blend = (length(slope) - 0.25f) * (1.0f / (0.5f - 0.25f));
     blend = clamp(blend, 0.0, 1.0);
     vec4 terrainColor = mix(texture(grassTexture, textureCoordinates), texture(rockTexture, textureCoordinates), blend);
 
     // Calculate alpha map
-    vec3 alphaMapColor = texture(alphaMap, vertexPosition.xz / 255).xyz;
+    vec3 alphaMapColor = texture(alphaMap, FRAG_position.xz / 255).xyz;
     // & use it to smootly Calculate road color
     vec4 roadColor = texture(roadColorTexture, textureCoordinates);
     roadColor = vec4((alphaMapColor * roadColor.xyz), roadColor.w);
@@ -127,23 +128,23 @@ vec4 terrainColor(vec3 fragmentPosition, vec3 dirToLight) {
 
     // Blend color, normals and specular together
     vec4 color = mix(terrainColor, roadColor, alphaMapColor.x);
-    vec3 blendedNormals = mix(normals, n, alphaMapColor.x);
+    vec3 blendedNormals = mix(FRAG_normals, n, alphaMapColor.x);
     float blendedSpecular = alphaMapColor.x * roadSpecular;
     color = calculateLighting(color, blendedSpecular, blendedNormals, dirToLight);
 
     return color;
 }
 
-vec4 waterColor(vec3 fragmentPosition, vec3 dirToLight) {
-    vec2 textureCoordinates = vertexPosition.xz * 10/255;
+vec4 waterColor(vec3 dirToLight) {
+    vec2 textureCoordinates = FRAG_position.xz * 10/255;
     vec2 animatedTextureCoordinates = (2 * textureCoordinates) + vec2(0.05 * animation, 0.05 * animation);
     float specular = 1.0;
     vec4 colorMaterial = 0.5 * texture(waterTexture, animatedTextureCoordinates);
 
-    vec3 normals = 0.5 * texture(waterNormalMap, animatedTextureCoordinates).xyz;
+    vec3 waterNormals = mix(texture(waterNormalMap, animatedTextureCoordinates).xyz, FRAG_normals, 0.5);
 
-    vec4 colorReflection = mix(colorMaterial, getReflectionColor(normals), 0.5);
-    vec4 colorLighting = calculateLighting(colorReflection, specular, normals, dirToLight);
+    vec4 colorReflection = mix(colorMaterial, getReflectionColor(waterNormals), 0.5);
+    vec4 colorLighting = calculateLighting(colorReflection, specular, waterNormals, dirToLight);
     return colorLighting;
 }
 
@@ -151,16 +152,25 @@ vec4 brightnessContrast(vec4 value) {
     return (value - 0.5) * contrast + 0.5 + brightness;
 }
 
+vec4 snowColor(vec3 dirToLight) {
+    vec2 textureCoordinates = FRAG_position.xz * 0.01;
+    float specular = 1.0;
+    vec4 colorMaterial = texture(snowTexture, textureCoordinates);
+    vec3 snowNormals = mix(texture(snowNormalMap, textureCoordinates).xyz, FRAG_normals, 0.5);
+    vec4 colorReflection = mix(colorMaterial, getReflectionColor(snowNormals), 0.3);
+    vec4 colorLighting = calculateLighting(colorReflection, specular, snowNormals, dirToLight);
+    return colorLighting;
+}
+
 void main()
 {
-    vec3 fragmentPosition = vertexPosition.xyz;
-    //surface geometry
-        //For Oren-Nayar lighting, uncomment the following:
-        //Based on: https://stackoverflow.com/questions/40583715/oren-nayar-lighting-in-opengl-how-to-calculate-view-direction-in-fragment-shade#40596525
-        vec3 dirToLight = vec3(1, 1, 0);
-    	// vec3 dirToViewer = normalize(vec3(-(gl_FragCoord.xy - screenSize/2) / (screenSize/4), 1.0));
-        // vec3 dirToViewer = normalize(-fragmentPosition); //viewer is at the origin in camera space
-    color = mix(waterColor(fragmentPosition, dirToLight), terrainColor(fragmentPosition, dirToLight), waterFactor);
+    // For Oren-Nayar lighting, uncomment the following:
+    // Based on: https://stackoverflow.com/questions/40583715/oren-nayar-lighting-in-opengl-how-to-calculate-view-direction-in-fragment-shade#40596525
+    vec3 dirToLight = vec3(1, 1, 0);
+    // vec3 dirToLight = normalize(vec3(-(gl_FragCoord.xy - screenSize/2) / (screenSize/4), 1.0));
+    // vec3 dirToLight = normalize(-fragmentPosition); //viewer is at the origin in camera space
+    color = mix(waterColor(dirToLight), terrainColor(dirToLight), FRAG_waterFactor);
+    color = mix(snowColor(dirToLight), color, FRAG_snowFactor);
     color = brightnessContrast(color);
     color = mix(getBackgroundColor(), color, getFogFactor());
 }

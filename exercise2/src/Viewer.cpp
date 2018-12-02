@@ -17,13 +17,12 @@
 #include "glsl.h"
 #include "textures.h"
 
-const uint32_t PATCH_SIZE = 256; //number of vertices along one side of the terrain patch
+const uint32_t PATCH_SIZE = 256;
 
 Viewer::Viewer()
 	: AbstractViewer("CG1 Exercise 2"),
-	terrainPositions(nse::gui::VertexBuffer), terrainIndices(nse::gui::IndexBuffer),
-	offsetBuffer(nse::gui::VertexBuffer)
-{ 
+	positionBuffer(nse::gui::VertexBuffer), offsetBuffer(nse::gui::VertexBuffer)
+{
 	LoadShaders();
 	CreateGeometry();
 
@@ -33,6 +32,8 @@ Viewer::Viewer()
 	glGenFramebuffers(1, &backgroundFBO);	
 	glGenTextures(1, &backgroundTexture);
 
+	// The following steps are necessary on linux, otherwise the background
+	// will not attach correctly
 	glBindFramebuffer(GL_FRAMEBUFFER, backgroundFBO);
 	glBindTexture(GL_TEXTURE_2D, backgroundTexture);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
@@ -46,13 +47,14 @@ Viewer::Viewer()
 	auto mainWindow = SetupMainWindow();
 
 	sldPerlin1Frequency = nse::gui::AddLabeledSliderWithDefaultDisplay(mainWindow, "Perlin 1 Frequency", std::make_pair(0.001f, 0.05f), 0.02f, 2);
-        sldPerlin2Frequency = nse::gui::AddLabeledSliderWithDefaultDisplay(mainWindow, "Perlin 2 Frequency", std::make_pair(0.001f, 0.05f), 0.01f, 2);
-        sldPerlin1Height = nse::gui::AddLabeledSliderWithDefaultDisplay(mainWindow, "Perlin 1 Height", std::make_pair(0.0f, 4.0f), 4.0f, 2);
-        sldPerlin2Height = nse::gui::AddLabeledSliderWithDefaultDisplay(mainWindow, "Perlin 2 Height", std::make_pair(0.0f, 4.0f), 1.95f, 2);
-    sldWaterHeight = nse::gui::AddLabeledSliderWithDefaultDisplay(mainWindow, "Water Height", std::make_pair(0.0f, 10.0f), 0.1f, 2);
-    sldBrightness = nse::gui::AddLabeledSliderWithDefaultDisplay(mainWindow, "Brightness adjustment", std::make_pair(0.0f, 2.0f), 0.66f, 2);
-    sldContrast = nse::gui::AddLabeledSliderWithDefaultDisplay(mainWindow, "Contrast adjustment", std::make_pair(0.0f, 5.0f), 2.38f, 2);
-
+	sldPerlin2Frequency = nse::gui::AddLabeledSliderWithDefaultDisplay(mainWindow, "Perlin 2 Frequency", std::make_pair(0.001f, 0.05f), 0.01f, 2);
+	sldPerlin1Height = nse::gui::AddLabeledSliderWithDefaultDisplay(mainWindow, "Perlin 1 Height", std::make_pair(0.0f, 4.0f), 4.0f, 2);
+	sldPerlin2Height = nse::gui::AddLabeledSliderWithDefaultDisplay(mainWindow, "Perlin 2 Height", std::make_pair(0.0f, 4.0f), 1.95f, 2);
+  sldWaterHeight = nse::gui::AddLabeledSliderWithDefaultDisplay(mainWindow, "Water Height", std::make_pair(0.0f, 10.0f), 0.1f, 2);
+  sldBrightness = nse::gui::AddLabeledSliderWithDefaultDisplay(mainWindow, "Brightness adjustment", std::make_pair(0.0f, 2.0f), 0.66f, 2);
+  sldContrast = nse::gui::AddLabeledSliderWithDefaultDisplay(mainWindow, "Contrast adjustment", std::make_pair(0.0f, 5.0f), 2.38f, 2);
+	sldSnowHeight = nse::gui::AddLabeledSliderWithDefaultDisplay(mainWindow, "Water Height", std::make_pair(0.0f, 20.0f), 10.0f, 2);
+	sldLOD = nse::gui::AddLabeledSliderWithDefaultDisplay(mainWindow, "Tessellation level", std::make_pair(1.0f, 128.0f), 128.0f, 2);
 	performLayout();
 
 	//Align camera to view a reasonable part of the terrain
@@ -82,8 +84,8 @@ bool Viewer::resizeEvent(const Eigen::Vector2i&)
 void Viewer::LoadShaders()
 {
 	skyShader.init("Sky Shader", std::string((const char*)sky_vert, sky_vert_size), std::string((const char*)sky_frag, sky_frag_size));
-	terrainShader.init("Terrain Shader", std::string((const char*)terrain_vert, terrain_vert_size), std::string((const char*)terrain_frag, terrain_frag_size));
-	/*
+	// terrainShader.init("Terrain Shader", std::string((const char*)terrain_vert, terrain_vert_size), std::string((const char*)terrain_frag, terrain_frag_size));
+
 	terrainShader.initWithTessellation(
 	        "Terrain Shader",
             std::string((const char*)terrain_vert, terrain_vert_size),
@@ -91,7 +93,6 @@ void Viewer::LoadShaders()
             std::string((const char*)terrain_tese, terrain_tese_size),
             std::string((const char*)terrain_frag, terrain_frag_size)
         );
-        */
 }
 
 unsigned int loadCubemap()
@@ -189,25 +190,25 @@ GLuint CreateTexture(const unsigned char* fileData, size_t fileLength, bool repe
 
 void Viewer::PrintAttributes(GLuint program)
 {
-    GLint i;
-    GLint count;
+	GLint i;
+	GLint count;
 
-    GLint size; // size of the variable
-    GLenum type; // type of the variable (float, vec3 or mat4, etc)
+	GLint size; // size of the variable
+	GLenum type; // type of the variable (float, vec3 or mat4, etc)
 
-    const GLsizei bufSize = 16; // maximum name length
-    GLchar name[bufSize]; // variable name in GLSL
-    GLsizei length; // name length
+	const GLsizei bufSize = 16; // maximum name length
+	GLchar name[bufSize]; // variable name in GLSL
+	GLsizei length; // name length
 
-    glGetProgramiv(program, GL_ACTIVE_ATTRIBUTES, &count);
-    printf("Active Attributes: %d\n", count);
+	glGetProgramiv(program, GL_ACTIVE_ATTRIBUTES, &count);
+	printf("Active Attributes: %d\n", count);
 
-    for (i = 0; i < count; i++)
-    {
-        glGetActiveAttrib(program, (GLuint)i, bufSize, &length, &size, &type, name);
+	for (i = 0; i < count; i++)
+	{
+		glGetActiveAttrib(program, (GLuint)i, bufSize, &length, &size, &type, name);
 
-        printf("Attribute #%d Type: %u Name: %s\n", i, type, name);
-    }
+		printf("Attribute #%d Type: %u Name: %s\n", i, type, name);
+	}
 }
 
 void Viewer::CreateGeometry()
@@ -218,45 +219,29 @@ void Viewer::CreateGeometry()
 	//terrain VAO	
 	terrainVAO.generate();
 	terrainVAO.bind();
-	
-	std::vector<Eigen::Vector4f> positions;
-	std::vector<uint32_t> indices;
-
-    // Task 2.2.5 a)
-    // See: https://tu-dresden.de/ing/informatik/smt/cgv/ressourcen/dateien/lehre/ws-18-19/cg1/CGI_03_Geometry.pdf?lang=de
-    offsetBuffer.bind();
-    GLuint offset = static_cast<GLuint>(terrainShader.attrib("offset"));
-    glEnableVertexAttribArray(offset);
-    glVertexAttribPointer(offset, 2, GL_FLOAT, GL_FALSE, 0, 0);
-    glVertexAttribDivisor(offset, 1);
-
-    /*Generate positions and indices for a terrain patch with a
-      single triangle strip */
-
-    // Source: https://tu-dresden.de/ing/informatik/smt/cgv/ressourcen/dateien/lehre/ws-18-19/cg1/CGI_03_Geometry.pdf?lang=en
-
-    for(int x = 0; x <= PATCH_SIZE; ++x) {
-        for (int z = 0; z <= PATCH_SIZE; ++z) {
-            Eigen::Vector4f position (x, 0, z, 1);
-
-            positions.push_back(position);
-        }
-    }
-
-    glEnable(GL_PRIMITIVE_RESTART);
-    glPrimitiveRestartIndex(UINT_MAX);
-
-    for (int x = 0; x < PATCH_SIZE; ++x) {
-        for (int z = 0; z <= PATCH_SIZE; ++z) {
-            indices.push_back(x*(PATCH_SIZE+1)+z);
-            indices.push_back((x+1)*(PATCH_SIZE+1)+z);
-        }
-		indices.push_back(UINT_MAX);
-    }
 
 	terrainShader.bind();
-	terrainPositions.uploadData(positions).bindToAttribute("position");
-	terrainIndices.uploadData(indices.size() * sizeof(uint32_t), indices.data());
+	PrintAttributes(terrainShader.mProgramShader);
+
+	// Task 2.2.5 a)
+	// See: https://tu-dresden.de/ing/informatik/smt/cgv/ressourcen/dateien/lehre/ws-18-19/cg1/CGI_03_Geometry.pdf?lang=de
+	offsetBuffer.bind();
+	GLuint offset = static_cast<GLuint>(terrainShader.attrib("offset"));
+	glEnableVertexAttribArray(offset);
+	glVertexAttribPointer(offset, 2, GL_FLOAT, GL_FALSE, 0, 0);
+	glVertexAttribDivisor(offset, 1);
+
+	std::vector<Eigen::Vector4f> positions;
+
+    for (int x = 0; x <= 3; x += 1) {
+        for (int y = 0; y <= 3; y += 1) {
+        	int scale = PATCH_SIZE / 3;
+            positions.emplace_back(x * scale, 0, y * scale, 1);
+        }
+    }
+
+	positionBuffer.bind();
+	positionBuffer.uploadData(positions).bindToAttribute("position");
 
 	PrintAttributes(terrainShader.mProgramShader);
 
@@ -270,6 +255,8 @@ void Viewer::CreateGeometry()
 	roadSpecularMap = CreateTexture((unsigned char*)roadspecular_jpg, roadspecular_jpg_size);
 	waterNormalMap = CreateTexture((unsigned char*)waternormals_jpg, waternormals_jpg_size);
 	waterTexture = CreateTexture((unsigned char*)watertexture_jpg, watertexture_jpg_size);
+	snowTexture = CreateTexture((unsigned char*)snow_jpg, snow_jpg_size);
+    snowNormalMap = CreateTexture((unsigned char*)snownormals_jpg, snownormals_jpg_size);
 
     skybox = loadCubemap();
 
@@ -298,7 +285,7 @@ void Viewer::RenderSky()
 	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 }
 
-void CalculateViewFrustum(const Eigen::Matrix4f& mvp, Eigen::Vector4f* frustumPlanes, nse::math::BoundingBox<float, 3>& bbox)
+void CalculateViewFrustum(const Eigen::Matrix4f mvp, Eigen::Vector4f* frustumPlanes, nse::math::BoundingBox<float, 3>& bbox)
 {
 	frustumPlanes[0] = (mvp.row(3) + mvp.row(0)).transpose();
     frustumPlanes[1] = (mvp.row(3) - mvp.row(0)).transpose();
@@ -336,12 +323,19 @@ void Viewer::drawContents()
 {
 	camera().ComputeCameraMatrices(view, proj);
 
-
 	animation += 0.03;
 
 	// Task 2.2.5 b)
 	Eigen::Matrix4f mvp = proj * view;
 	Eigen::Vector3f cameraPosition = view.inverse().col(3).head<3>();
+
+	RenderSky();
+
+	//render terrain
+	glEnable(GL_DEPTH_TEST);
+	terrainVAO.bind();
+	terrainShader.bind();
+
 	auto *frustumPlanes = new Eigen::Vector4f[6];
 	nse::math::BoundingBox<float, 3> boundingBox;
 
@@ -364,7 +358,8 @@ void Viewer::drawContents()
 	int clampedMaxZ = maxZ - (maxZ % PATCH_SIZE);
 
 	int visiblePatches = 0;
-	std::vector<Eigen::Vector2f> offsets;
+
+	std::vector<Eigen::Vector4f> offsets;
 
 	for (int x = clampedMinX; x <= clampedMaxX; x += PATCH_SIZE) {
 		for (int z = clampedMinZ; z <= clampedMaxZ; z += PATCH_SIZE) {
@@ -381,34 +376,32 @@ void Viewer::drawContents()
 				}
 			}
 			if (!isBehind) {
-				offsets.emplace_back((float) x, (float) z);
+				offsets.emplace_back((float) x, 0, (float) z, 1);
+
 				visiblePatches += 1;
 			}
 		}
 	}
 
-  	offsetBuffer.uploadData(offsets);
+	offsetBuffer.uploadData(offsets);
 
-	RenderSky();
-	
-	//render terrain
-	glEnable(GL_DEPTH_TEST);
-	terrainVAO.bind();
-	terrainShader.bind();
+	terrainShader.setUniform("mvp", mvp, false);
+	terrainShader.setUniform("screenSize", Eigen::Vector2f(width(), height()));
+	terrainShader.setUniform("mv", view, false);
+	terrainShader.setUniform("projection", proj, false);
+	terrainShader.setUniform("cameraPos", cameraPosition);
 
-	terrainShader.setUniform("screenSize", Eigen::Vector2f(width(), height()), false);
-	terrainShader.setUniform("mvp", mvp);
-	terrainShader.setUniform("cameraPos", cameraPosition, false);
+  terrainShader.setUniform("animation", animation);
 
-    terrainShader.setUniform("animation", animation, false);
-
-	terrainShader.setUniform("perlinNoise1Frequency", sldPerlin1Frequency->value(), false);
-	terrainShader.setUniform("perlinNoise2Frequency", sldPerlin2Frequency->value(), false);
-	terrainShader.setUniform("perlinNoise1Height", sldPerlin1Height->value(), false);
-	terrainShader.setUniform("perlinNoise2Height", sldPerlin2Height->value(), false);
-    terrainShader.setUniform("waterHeight", sldWaterHeight->value(), false);
-    terrainShader.setUniform("brightness", sldBrightness->value(), false);
-    terrainShader.setUniform("contrast", sldContrast->value(), false);
+	terrainShader.setUniform("perlinNoise1Frequency", sldPerlin1Frequency->value());
+	terrainShader.setUniform("perlinNoise2Frequency", sldPerlin2Frequency->value());
+	terrainShader.setUniform("perlinNoise1Height", sldPerlin1Height->value());
+	terrainShader.setUniform("perlinNoise2Height", sldPerlin2Height->value());
+  terrainShader.setUniform("waterHeight", sldWaterHeight->value());
+  terrainShader.setUniform("brightness", sldBrightness->value(), false);
+  terrainShader.setUniform("contrast", sldContrast->value(), false);
+	terrainShader.setUniform("snowHeight", sldSnowHeight->value());
+	terrainShader.setUniform("lod", sldLOD->value());
 
 	/* Task: Render the terrain */
 	glActiveTexture(GL_TEXTURE0);
@@ -441,23 +434,33 @@ void Viewer::drawContents()
 
 	glActiveTexture(GL_TEXTURE7);
 	glBindTexture(GL_TEXTURE_CUBE_MAP, skybox);
-        terrainShader.setUniform("skybox", 7, skybox);
+	terrainShader.setUniform("skybox", 7, false);
 
 	glActiveTexture(GL_TEXTURE8);
 	glBindTexture(GL_TEXTURE_2D, waterNormalMap);
-        terrainShader.setUniform("waterNormalMap", 8, false);
+	terrainShader.setUniform("waterNormalMap", 8, false);
 
 	glActiveTexture(GL_TEXTURE9);
 	glBindTexture(GL_TEXTURE_2D, waterTexture);
-        terrainShader.setUniform("waterTexture", 9, false);
+	terrainShader.setUniform("waterTexture", 9, false);
 
+  glActiveTexture(GL_TEXTURE10);
+  glBindTexture(GL_TEXTURE_2D, snowTexture);
+  terrainShader.setUniform("snowTexture", 10, false);
+
+	glActiveTexture(GL_TEXTURE11);
+	glBindTexture(GL_TEXTURE_2D, snowNormalMap);
+	terrainShader.setUniform("snowNormalMap", 11, false);
 
 	glClearDepth(1);
 	glEnable(GL_DEPTH_TEST);
 
-	int count = PATCH_SIZE * PATCH_SIZE * 2 + PATCH_SIZE * 3;
-	// FYI: Uncomment if necessary to show wireframe model
-	glDrawElementsInstanced(GL_TRIANGLE_STRIP, count, GL_UNSIGNED_INT, 0, visiblePatches);
+	glPatchParameteri(GL_PATCH_VERTICES, 16);
+
+	// glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+	// glDrawArrays(GL_PATCHES, 0, 4);
+	glDrawArraysInstanced(GL_PATCHES, 0, 16, visiblePatches);
+	// glDrawElementsInstanced(GL_PATCHES, visiblePatches, GL_UNSIGNED_INT, 0, visiblePatches);
 	
 	//Render text
 	nvgBeginFrame(mNVGContext, width(), height(), mPixelRatio);
