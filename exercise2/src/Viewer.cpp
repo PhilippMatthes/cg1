@@ -54,9 +54,9 @@ Viewer::Viewer()
 	sldBrightness = nse::gui::AddLabeledSliderWithDefaultDisplay(mainWindow, "Brightness adjustment", std::make_pair(0.0f, 2.0f), 0.46f, 2);
 	sldContrast = nse::gui::AddLabeledSliderWithDefaultDisplay(mainWindow, "Contrast adjustment", std::make_pair(0.0f, 5.0f), 2.01f, 2);
 	sldSnowHeight = nse::gui::AddLabeledSliderWithDefaultDisplay(mainWindow, "Snow Height", std::make_pair(0.0f, 20.0f), 10.0f, 2);
-    sldTessellationFactor = nse::gui::AddLabeledSliderWithDefaultDisplay(mainWindow, "Tessellation Factor", std::make_pair(0.0f, 3000.0f), 1500.0f, 2);
-    sldTessellationSlope = nse::gui::AddLabeledSliderWithDefaultDisplay(mainWindow, "Tessellation Slope", std::make_pair(0.0f, 10.0f), 1.8f, 2);
-    sldTessellationShift = nse::gui::AddLabeledSliderWithDefaultDisplay(mainWindow, "Tessellation Shift", std::make_pair(0.0f, 10.0f), 0.1f, 2);
+    sldTessellationFactor = nse::gui::AddLabeledSliderWithDefaultDisplay(mainWindow, "Tessellation Factor", std::make_pair(0.0f, 800.0f), 500.0f, 2);
+    sldTessellationSlope = nse::gui::AddLabeledSliderWithDefaultDisplay(mainWindow, "Tessellation Slope", std::make_pair(0.0f, 2.0f), 1.46, 2);
+    sldTessellationShift = nse::gui::AddLabeledSliderWithDefaultDisplay(mainWindow, "Tessellation Shift", std::make_pair(0.0f, 5.0f), 1.83f, 2);
 
 
     chkShowTrianglesOnly = new nanogui::CheckBox(mainWindow, "Show triangles");
