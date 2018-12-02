@@ -4,8 +4,8 @@
 
 #version 430
 
-in vec4 position;
-in vec4 offset;
+in vec2 position;
+in vec2 offset;
 
 out vec3 TCS_position;
 
@@ -15,7 +15,7 @@ uniform mat4 projection;
 
 void main()
 {
-    vec4 offsetPosition = vec4(position.x + offset.x, position.y, position.z + offset.z, position.w);
-    gl_Position = (mvp * position);
-    TCS_position = (mv * position).xyz;
+    vec4 offsetPosition = vec4(position.x + offset.x, 0, position.y + offset.y, 1);
+    gl_Position = (mvp * offsetPosition);
+    TCS_position = (mv * offsetPosition).xyz;
 }
