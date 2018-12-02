@@ -31,6 +31,8 @@ private:
 	nanogui::Slider* sldPerlin1Frequency;
 	nanogui::Slider* sldPerlin2Frequency;
 	nanogui::Slider* sldWaterHeight;
+    nanogui::Slider* sldContrast;
+    nanogui::Slider* sldBrightness;
 
 	float animation;
 

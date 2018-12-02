@@ -1,4 +1,4 @@
-﻿// This source code is property of the Computer Graphics and Visualization 
+// This source code is property of the Computer Graphics and Visualization 
 // chair of the TU Dresden. Do not distribute! 
 // Copyright (C) CGV TU Dresden - All Rights Reserved
 
@@ -50,6 +50,8 @@ Viewer::Viewer()
         sldPerlin1Height = nse::gui::AddLabeledSliderWithDefaultDisplay(mainWindow, "Perlin 1 Height", std::make_pair(0.0f, 4.0f), 4.0f, 2);
         sldPerlin2Height = nse::gui::AddLabeledSliderWithDefaultDisplay(mainWindow, "Perlin 2 Height", std::make_pair(0.0f, 4.0f), 1.95f, 2);
     sldWaterHeight = nse::gui::AddLabeledSliderWithDefaultDisplay(mainWindow, "Water Height", std::make_pair(0.0f, 10.0f), 0.1f, 2);
+    sldBrightness = nse::gui::AddLabeledSliderWithDefaultDisplay(mainWindow, "Brightness adjustment", std::make_pair(0.0f, 2.0f), 0.66f, 2);
+    sldContrast = nse::gui::AddLabeledSliderWithDefaultDisplay(mainWindow, "Contrast adjustment", std::make_pair(0.0f, 5.0f), 2.38f, 2);
 
 	performLayout();
 
@@ -405,6 +407,8 @@ void Viewer::drawContents()
 	terrainShader.setUniform("perlinNoise1Height", sldPerlin1Height->value(), false);
 	terrainShader.setUniform("perlinNoise2Height", sldPerlin2Height->value(), false);
     terrainShader.setUniform("waterHeight", sldWaterHeight->value(), false);
+    terrainShader.setUniform("brightness", sldBrightness->value(), false);
+    terrainShader.setUniform("contrast", sldContrast->value(), false);
 
 	/* Task: Render the terrain */
 	glActiveTexture(GL_TEXTURE0);

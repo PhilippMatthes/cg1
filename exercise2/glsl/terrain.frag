@@ -29,6 +29,10 @@ uniform vec3 cameraPos;
 uniform vec2 screenSize;
 
 uniform float waterHeight;
+
+uniform float brightness;
+uniform float contrast;
+
 in float waterFactor;
 
 const vec3 dirToLight = normalize(vec3(1, 3, 1));
@@ -143,7 +147,7 @@ vec4 waterColor(vec3 fragmentPosition, vec3 dirToLight) {
     return colorLighting;
 }
 
-vec4 brightnessContrast(vec4 value, float brightness, float contrast) {
+vec4 brightnessContrast(vec4 value) {
     return (value - 0.5) * contrast + 0.5 + brightness;
 }
 
@@ -157,6 +161,6 @@ void main()
     	// vec3 dirToViewer = normalize(vec3(-(gl_FragCoord.xy - screenSize/2) / (screenSize/4), 1.0));
         // vec3 dirToViewer = normalize(-fragmentPosition); //viewer is at the origin in camera space
     color = mix(waterColor(fragmentPosition, dirToLight), terrainColor(fragmentPosition, dirToLight), waterFactor);
-    color = brightnessContrast(color, 0.1, 1.3);
+    color = brightnessContrast(color);
     color = mix(getBackgroundColor(), color, getFogFactor());
 }
