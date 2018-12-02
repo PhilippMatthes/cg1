@@ -31,10 +31,14 @@ private:
 	nanogui::Slider* sldPerlin1Frequency;
 	nanogui::Slider* sldPerlin2Frequency;
 	nanogui::Slider* sldWaterHeight;
-  nanogui::Slider* sldContrast;
-  nanogui::Slider* sldBrightness;
-  nanogui::Slider* sldSnowHeight;
-	nanogui::Slider* sldLOD;
+	nanogui::Slider* sldContrast;
+	nanogui::Slider* sldBrightness;
+	nanogui::Slider* sldSnowHeight;
+    nanogui::Slider* sldTessellationFactor;
+    nanogui::Slider* sldTessellationSlope;
+    nanogui::Slider* sldTessellationShift;
+
+	nanogui::CheckBox* chkShowTrianglesOnly;
 
 	float animation;
 

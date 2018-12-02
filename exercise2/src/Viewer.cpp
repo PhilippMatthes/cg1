@@ -17,7 +17,7 @@
 #include "glsl.h"
 #include "textures.h"
 
-const uint32_t PATCH_SIZE = 64;
+const uint32_t PATCH_SIZE = 128;
 
 Viewer::Viewer()
 	: AbstractViewer("CG1 Exercise 2"),
@@ -53,8 +53,14 @@ Viewer::Viewer()
 	sldWaterHeight = nse::gui::AddLabeledSliderWithDefaultDisplay(mainWindow, "Water Height", std::make_pair(0.0f, 10.0f), 0.1f, 2);
 	sldBrightness = nse::gui::AddLabeledSliderWithDefaultDisplay(mainWindow, "Brightness adjustment", std::make_pair(0.0f, 2.0f), 0.46f, 2);
 	sldContrast = nse::gui::AddLabeledSliderWithDefaultDisplay(mainWindow, "Contrast adjustment", std::make_pair(0.0f, 5.0f), 2.01f, 2);
-	sldSnowHeight = nse::gui::AddLabeledSliderWithDefaultDisplay(mainWindow, "Water Height", std::make_pair(0.0f, 20.0f), 10.0f, 2);
-	sldLOD = nse::gui::AddLabeledSliderWithDefaultDisplay(mainWindow, "Tessellation level", std::make_pair(1.0f, 64.0f), 16.0f, 2);
+	sldSnowHeight = nse::gui::AddLabeledSliderWithDefaultDisplay(mainWindow, "Snow Height", std::make_pair(0.0f, 20.0f), 10.0f, 2);
+    sldTessellationFactor = nse::gui::AddLabeledSliderWithDefaultDisplay(mainWindow, "Tessellation Factor", std::make_pair(0.0f, 3000.0f), 1500.0f, 2);
+    sldTessellationSlope = nse::gui::AddLabeledSliderWithDefaultDisplay(mainWindow, "Tessellation Slope", std::make_pair(0.0f, 10.0f), 1.8f, 2);
+    sldTessellationShift = nse::gui::AddLabeledSliderWithDefaultDisplay(mainWindow, "Tessellation Shift", std::make_pair(0.0f, 10.0f), 0.1f, 2);
+
+
+    chkShowTrianglesOnly = new nanogui::CheckBox(mainWindow, "Show triangles");
+    chkShowTrianglesOnly->setChecked(false);
 	performLayout();
 
 	//Align camera to view a reasonable part of the terrain
@@ -401,7 +407,10 @@ void Viewer::drawContents()
     terrainShader.setUniform("brightness", sldBrightness->value(), false);
     terrainShader.setUniform("contrast", sldContrast->value(), false);
 	terrainShader.setUniform("snowHeight", sldSnowHeight->value());
-	terrainShader.setUniform("lod", sldLOD->value());
+
+	terrainShader.setUniform("tessellationFactor", sldTessellationFactor->value());
+	terrainShader.setUniform("tessellationSlope", sldTessellationSlope->value());
+	terrainShader.setUniform("tessellationShift", sldTessellationShift->value());
 
 	/* Task: Render the terrain */
 	glActiveTexture(GL_TEXTURE0);
@@ -457,10 +466,12 @@ void Viewer::drawContents()
 
 	glPatchParameteri(GL_PATCH_VERTICES, 16);
 
-	// glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-	// glDrawArrays(GL_PATCHES, 0, 4);
+    if (chkShowTrianglesOnly->checked()) {
+        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    } else {
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    }
 	glDrawArraysInstanced(GL_PATCHES, 0, visiblePatches, visiblePatches);
-	// glDrawElementsInstanced(GL_PATCHES, visiblePatches, GL_UNSIGNED_INT, 0, visiblePatches);
 	
 	//Render text
 	nvgBeginFrame(mNVGContext, width(), height(), mPixelRatio);
