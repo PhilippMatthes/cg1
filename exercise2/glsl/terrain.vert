@@ -15,7 +15,7 @@ uniform mat4 projection;
 
 void main()
 {
-    // vec4 offsetPosition = position + offset;
+    vec4 offsetPosition = vec4(position.x + offset.x, position.y, position.z + offset.z, position.w);
     gl_Position = (mvp * position);
     TCS_position = (mv * position).xyz;
 }
