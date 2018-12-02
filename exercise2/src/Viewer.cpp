@@ -50,9 +50,9 @@ Viewer::Viewer()
 	sldPerlin2Frequency = nse::gui::AddLabeledSliderWithDefaultDisplay(mainWindow, "Perlin 2 Frequency", std::make_pair(0.001f, 0.05f), 0.01f, 2);
 	sldPerlin1Height = nse::gui::AddLabeledSliderWithDefaultDisplay(mainWindow, "Perlin 1 Height", std::make_pair(0.0f, 4.0f), 4.0f, 2);
 	sldPerlin2Height = nse::gui::AddLabeledSliderWithDefaultDisplay(mainWindow, "Perlin 2 Height", std::make_pair(0.0f, 4.0f), 1.95f, 2);
-  sldWaterHeight = nse::gui::AddLabeledSliderWithDefaultDisplay(mainWindow, "Water Height", std::make_pair(0.0f, 10.0f), 0.1f, 2);
-  sldBrightness = nse::gui::AddLabeledSliderWithDefaultDisplay(mainWindow, "Brightness adjustment", std::make_pair(0.0f, 2.0f), 0.66f, 2);
-  sldContrast = nse::gui::AddLabeledSliderWithDefaultDisplay(mainWindow, "Contrast adjustment", std::make_pair(0.0f, 5.0f), 2.38f, 2);
+	sldWaterHeight = nse::gui::AddLabeledSliderWithDefaultDisplay(mainWindow, "Water Height", std::make_pair(0.0f, 10.0f), 0.1f, 2);
+	sldBrightness = nse::gui::AddLabeledSliderWithDefaultDisplay(mainWindow, "Brightness adjustment", std::make_pair(0.0f, 2.0f), 0.46f, 2);
+	sldContrast = nse::gui::AddLabeledSliderWithDefaultDisplay(mainWindow, "Contrast adjustment", std::make_pair(0.0f, 5.0f), 2.01f, 2);
 	sldSnowHeight = nse::gui::AddLabeledSliderWithDefaultDisplay(mainWindow, "Water Height", std::make_pair(0.0f, 20.0f), 10.0f, 2);
 	sldLOD = nse::gui::AddLabeledSliderWithDefaultDisplay(mainWindow, "Tessellation level", std::make_pair(1.0f, 128.0f), 128.0f, 2);
 	performLayout();
