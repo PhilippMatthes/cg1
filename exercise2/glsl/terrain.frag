@@ -33,6 +33,11 @@ uniform vec2 screenSize;
 uniform float waterHeight;
 uniform float snowHeight;
 
+uniform float brightness;
+uniform float contrast;
+
+in float waterFactor;
+
 const vec3 dirToLight = normalize(vec3(1, 3, 1));
 const float FogDensity = 0.006;
 
@@ -143,6 +148,10 @@ vec4 waterColor(vec3 dirToLight) {
     return colorLighting;
 }
 
+vec4 brightnessContrast(vec4 value) {
+    return (value - 0.5) * contrast + 0.5 + brightness;
+}
+
 vec4 snowColor(vec3 dirToLight) {
     vec2 textureCoordinates = FRAG_position.xz * 0.01;
     float specular = 1.0;
@@ -162,5 +171,6 @@ void main()
     // vec3 dirToLight = normalize(-fragmentPosition); //viewer is at the origin in camera space
     color = mix(waterColor(dirToLight), terrainColor(dirToLight), FRAG_waterFactor);
     color = mix(snowColor(dirToLight), color, FRAG_snowFactor);
+    color = brightnessContrast(color);
     color = mix(getBackgroundColor(), color, getFogFactor());
 }

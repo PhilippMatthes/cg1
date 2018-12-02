@@ -1,4 +1,4 @@
-﻿// This source code is property of the Computer Graphics and Visualization 
+// This source code is property of the Computer Graphics and Visualization 
 // chair of the TU Dresden. Do not distribute! 
 // Copyright (C) CGV TU Dresden - All Rights Reserved
 
@@ -50,10 +50,11 @@ Viewer::Viewer()
 	sldPerlin2Frequency = nse::gui::AddLabeledSliderWithDefaultDisplay(mainWindow, "Perlin 2 Frequency", std::make_pair(0.001f, 0.05f), 0.01f, 2);
 	sldPerlin1Height = nse::gui::AddLabeledSliderWithDefaultDisplay(mainWindow, "Perlin 1 Height", std::make_pair(0.0f, 4.0f), 4.0f, 2);
 	sldPerlin2Height = nse::gui::AddLabeledSliderWithDefaultDisplay(mainWindow, "Perlin 2 Height", std::make_pair(0.0f, 4.0f), 1.95f, 2);
-    sldWaterHeight = nse::gui::AddLabeledSliderWithDefaultDisplay(mainWindow, "Water Height", std::make_pair(0.0f, 10.0f), 0.1f, 2);
+  sldWaterHeight = nse::gui::AddLabeledSliderWithDefaultDisplay(mainWindow, "Water Height", std::make_pair(0.0f, 10.0f), 0.1f, 2);
+  sldBrightness = nse::gui::AddLabeledSliderWithDefaultDisplay(mainWindow, "Brightness adjustment", std::make_pair(0.0f, 2.0f), 0.66f, 2);
+  sldContrast = nse::gui::AddLabeledSliderWithDefaultDisplay(mainWindow, "Contrast adjustment", std::make_pair(0.0f, 5.0f), 2.38f, 2);
 	sldSnowHeight = nse::gui::AddLabeledSliderWithDefaultDisplay(mainWindow, "Water Height", std::make_pair(0.0f, 20.0f), 10.0f, 2);
 	sldLOD = nse::gui::AddLabeledSliderWithDefaultDisplay(mainWindow, "Tessellation level", std::make_pair(1.0f, 128.0f), 128.0f, 2);
-
 	performLayout();
 
 	//Align camera to view a reasonable part of the terrain
@@ -242,6 +243,8 @@ void Viewer::CreateGeometry()
 	positionBuffer.bind();
 	positionBuffer.uploadData(positions).bindToAttribute("position");
 
+	PrintAttributes(terrainShader.mProgramShader);
+
 	std::cout << "Creating textures ..." << std::endl;
 
 	//textures
@@ -388,13 +391,15 @@ void Viewer::drawContents()
 	terrainShader.setUniform("projection", proj, false);
 	terrainShader.setUniform("cameraPos", cameraPosition);
 
-    terrainShader.setUniform("animation", animation);
+  terrainShader.setUniform("animation", animation);
 
 	terrainShader.setUniform("perlinNoise1Frequency", sldPerlin1Frequency->value());
 	terrainShader.setUniform("perlinNoise2Frequency", sldPerlin2Frequency->value());
 	terrainShader.setUniform("perlinNoise1Height", sldPerlin1Height->value());
 	terrainShader.setUniform("perlinNoise2Height", sldPerlin2Height->value());
-    terrainShader.setUniform("waterHeight", sldWaterHeight->value());
+  terrainShader.setUniform("waterHeight", sldWaterHeight->value());
+  terrainShader.setUniform("brightness", sldBrightness->value(), false);
+  terrainShader.setUniform("contrast", sldContrast->value(), false);
 	terrainShader.setUniform("snowHeight", sldSnowHeight->value());
 	terrainShader.setUniform("lod", sldLOD->value());
 
@@ -439,9 +444,9 @@ void Viewer::drawContents()
 	glBindTexture(GL_TEXTURE_2D, waterTexture);
 	terrainShader.setUniform("waterTexture", 9, false);
 
-    glActiveTexture(GL_TEXTURE10);
-    glBindTexture(GL_TEXTURE_2D, snowTexture);
-    terrainShader.setUniform("snowTexture", 10, false);
+  glActiveTexture(GL_TEXTURE10);
+  glBindTexture(GL_TEXTURE_2D, snowTexture);
+  terrainShader.setUniform("snowTexture", 10, false);
 
 	glActiveTexture(GL_TEXTURE11);
 	glBindTexture(GL_TEXTURE_2D, snowNormalMap);

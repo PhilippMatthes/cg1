@@ -17,7 +17,6 @@ public:
 	void LoadShaders();
 	void CreateGeometry();
 	void PrintAttributes(GLuint program);
-
 	void drawContents();	
 	bool resizeEvent(const Eigen::Vector2i&);
 
@@ -32,7 +31,9 @@ private:
 	nanogui::Slider* sldPerlin1Frequency;
 	nanogui::Slider* sldPerlin2Frequency;
 	nanogui::Slider* sldWaterHeight;
-    nanogui::Slider* sldSnowHeight;
+  nanogui::Slider* sldContrast;
+  nanogui::Slider* sldBrightness;
+  nanogui::Slider* sldSnowHeight;
 	nanogui::Slider* sldLOD;
 
 	float animation;
