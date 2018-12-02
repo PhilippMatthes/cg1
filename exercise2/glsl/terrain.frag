@@ -45,7 +45,7 @@ vec4 calculateLighting(vec4 materialColor, float specularIntensity, vec3 normali
 	return color;
 }
 
-vec4 getReflectionColor() {
+vec4 getReflectionColor(vec3 normals) {
     // https://darrensweeney.net/2015/12/17/opengl-skybox-rendering/
     vec3 I = normalize(vertexPosition.xyz - cameraPos);
     vec3 R = reflect(I, normalize(normals));
@@ -138,7 +138,7 @@ vec4 waterColor(vec3 fragmentPosition, vec3 dirToLight) {
 
     vec3 normals = 0.5 * texture(waterNormalMap, animatedTextureCoordinates).xyz;
 
-    vec4 colorReflection = mix(colorMaterial, getReflectionColor(), 0.5);
+    vec4 colorReflection = mix(colorMaterial, getReflectionColor(normals), 0.5);
     vec4 colorLighting = calculateLighting(colorReflection, specular, normals, dirToLight);
     return mix(getBackgroundColor(), colorLighting, getFogFactor());
 }
