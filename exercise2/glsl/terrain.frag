@@ -127,7 +127,7 @@ vec4 terrainColor(vec3 fragmentPosition, vec3 dirToLight) {
     float blendedSpecular = alphaMapColor.x * roadSpecular;
     color = calculateLighting(color, blendedSpecular, blendedNormals, dirToLight);
 
-    return mix(getBackgroundColor(), color, getFogFactor());
+    return color;
 }
 
 vec4 waterColor(vec3 fragmentPosition, vec3 dirToLight) {
@@ -140,7 +140,11 @@ vec4 waterColor(vec3 fragmentPosition, vec3 dirToLight) {
 
     vec4 colorReflection = mix(colorMaterial, getReflectionColor(normals), 0.5);
     vec4 colorLighting = calculateLighting(colorReflection, specular, normals, dirToLight);
-    return mix(getBackgroundColor(), colorLighting, getFogFactor());
+    return colorLighting;
+}
+
+vec4 brightnessContrast(vec4 value, float brightness, float contrast) {
+    return (value - 0.5) * contrast + 0.5 + brightness;
 }
 
 void main()
@@ -153,4 +157,6 @@ void main()
     	// vec3 dirToViewer = normalize(vec3(-(gl_FragCoord.xy - screenSize/2) / (screenSize/4), 1.0));
         // vec3 dirToViewer = normalize(-fragmentPosition); //viewer is at the origin in camera space
     color = mix(waterColor(fragmentPosition, dirToLight), terrainColor(fragmentPosition, dirToLight), waterFactor);
+    color = brightnessContrast(color, 0.1, 1.3);
+    color = mix(getBackgroundColor(), color, getFogFactor());
 }
