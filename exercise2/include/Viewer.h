@@ -34,9 +34,6 @@ private:
 	nanogui::Slider* sldContrast;
 	nanogui::Slider* sldBrightness;
 	nanogui::Slider* sldSnowHeight;
-    nanogui::Slider* sldTessellationFactor;
-    nanogui::Slider* sldTessellationSlope;
-    nanogui::Slider* sldTessellationShift;
 
 	nanogui::CheckBox* chkShowTrianglesOnly;
 

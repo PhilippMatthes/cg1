@@ -78,7 +78,7 @@ float getWaterHeight(vec2 p) {;
 
 vec3 calculateNormals(vec2 p) {
     // Based on: https://stackoverflow.com/questions/13983189/opengl-how-to-calculate-normals-in-a-terrain-height-grid
-    vec3 off = vec3(0.1, 0.0, 0.1);
+    vec3 off = vec3(0.3, 0.0, 0.3);
     float hL = getTerrainHeight(p.xy - off.xz);
     float hR = getTerrainHeight(p.xy + off.xz);
     float hD = getTerrainHeight(p.xy - off.zy);

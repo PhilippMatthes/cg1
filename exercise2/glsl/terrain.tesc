@@ -13,9 +13,6 @@ layout(vertices = 16) out;
 in vec3 TCS_position[];
 out vec3 TEC_position[];
 
-uniform float tessellationFactor;
-uniform float tessellationSlope;
-uniform float tessellationShift;
 uniform vec3 cameraPos;
 
 const int AB = 2;
@@ -24,7 +21,7 @@ const int CD = 0;
 const int DA = 1;
 
 float lod(float dist) {
-    return max(0.0, (int(tessellationFactor)/pow(dist, tessellationSlope)) + tessellationShift);
+    return clamp((-200.0/1200.0) * dist + 64.0, 1.0, 64.0);
 }
 
 void main(){

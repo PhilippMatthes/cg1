@@ -54,10 +54,6 @@ Viewer::Viewer()
 	sldBrightness = nse::gui::AddLabeledSliderWithDefaultDisplay(mainWindow, "Brightness adjustment", std::make_pair(0.0f, 2.0f), 0.46f, 2);
 	sldContrast = nse::gui::AddLabeledSliderWithDefaultDisplay(mainWindow, "Contrast adjustment", std::make_pair(0.0f, 5.0f), 2.01f, 2);
 	sldSnowHeight = nse::gui::AddLabeledSliderWithDefaultDisplay(mainWindow, "Snow Height", std::make_pair(0.0f, 20.0f), 10.0f, 2);
-    sldTessellationFactor = nse::gui::AddLabeledSliderWithDefaultDisplay(mainWindow, "Tessellation Factor", std::make_pair(0.0f, 800.0f), 500.0f, 2);
-    sldTessellationSlope = nse::gui::AddLabeledSliderWithDefaultDisplay(mainWindow, "Tessellation Slope", std::make_pair(0.0f, 2.0f), 1.46, 2);
-    sldTessellationShift = nse::gui::AddLabeledSliderWithDefaultDisplay(mainWindow, "Tessellation Shift", std::make_pair(0.0f, 5.0f), 1.83f, 2);
-
 
     chkShowTrianglesOnly = new nanogui::CheckBox(mainWindow, "Show triangles");
     chkShowTrianglesOnly->setChecked(false);
@@ -367,12 +363,11 @@ void Viewer::drawContents()
 
 	std::vector<Eigen::Vector2f> offsets;
 
+        nse::math::BoundingBox<float, 3> patchBox;
 	for (int x = clampedMinX; x <= clampedMaxX; x += PATCH_SIZE) {
 		for (int z = clampedMinZ; z <= clampedMaxZ; z += PATCH_SIZE) {
-			nse::math::BoundingBox<float, 3> patchBox (
-			  Eigen::Matrix<float, 3, 1> ((float) x, (float) minY, (float) z),
-			  Eigen::Matrix<float, 3, 1> ((float) (x + PATCH_SIZE), (float) maxY, (float) (z + PATCH_SIZE))
-			);
+                        patchBox.min = Eigen::Vector3f(x, minY, z);
+                        patchBox.max = Eigen::Vector3f((x + PATCH_SIZE), maxY, (z + PATCH_SIZE));
 
 			bool isBehind = false;
 			for (int p = 0; p < 6; p += 1) {
@@ -403,14 +398,10 @@ void Viewer::drawContents()
 	terrainShader.setUniform("perlinNoise2Frequency", sldPerlin2Frequency->value());
 	terrainShader.setUniform("perlinNoise1Height", sldPerlin1Height->value());
 	terrainShader.setUniform("perlinNoise2Height", sldPerlin2Height->value());
-    terrainShader.setUniform("waterHeight", sldWaterHeight->value());
-    terrainShader.setUniform("brightness", sldBrightness->value(), false);
-    terrainShader.setUniform("contrast", sldContrast->value(), false);
+        terrainShader.setUniform("waterHeight", sldWaterHeight->value());
+        terrainShader.setUniform("brightness", sldBrightness->value(), false);
+        terrainShader.setUniform("contrast", sldContrast->value(), false);
 	terrainShader.setUniform("snowHeight", sldSnowHeight->value());
-
-	terrainShader.setUniform("tessellationFactor", sldTessellationFactor->value());
-	terrainShader.setUniform("tessellationSlope", sldTessellationSlope->value());
-	terrainShader.setUniform("tessellationShift", sldTessellationShift->value());
 
 	/* Task: Render the terrain */
 	glActiveTexture(GL_TEXTURE0);
@@ -453,9 +444,9 @@ void Viewer::drawContents()
 	glBindTexture(GL_TEXTURE_2D, waterTexture);
 	terrainShader.setUniform("waterTexture", 9, false);
 
-    glActiveTexture(GL_TEXTURE10);
-    glBindTexture(GL_TEXTURE_2D, snowTexture);
-    terrainShader.setUniform("snowTexture", 10, false);
+        glActiveTexture(GL_TEXTURE10);
+        glBindTexture(GL_TEXTURE_2D, snowTexture);
+        terrainShader.setUniform("snowTexture", 10, false);
 
 	glActiveTexture(GL_TEXTURE11);
 	glBindTexture(GL_TEXTURE_2D, snowNormalMap);
