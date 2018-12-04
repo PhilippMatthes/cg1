@@ -53,7 +53,7 @@ Viewer::Viewer()
 	sldWaterHeight = nse::gui::AddLabeledSliderWithDefaultDisplay(mainWindow, "Water Height", std::make_pair(0.0f, 10.0f), 0.1f, 2);
 	sldBrightness = nse::gui::AddLabeledSliderWithDefaultDisplay(mainWindow, "Brightness adjustment", std::make_pair(0.0f, 2.0f), 0.46f, 2);
 	sldContrast = nse::gui::AddLabeledSliderWithDefaultDisplay(mainWindow, "Contrast adjustment", std::make_pair(0.0f, 5.0f), 2.01f, 2);
-	sldSnowHeight = nse::gui::AddLabeledSliderWithDefaultDisplay(mainWindow, "Snow Height", std::make_pair(0.0f, 20.0f), 10.0f, 2);
+        sldSnowHeight = nse::gui::AddLabeledSliderWithDefaultDisplay(mainWindow, "Snow Height", std::make_pair(0.0f, 20.0f), 14.15f, 2);
 
     chkShowTrianglesOnly = new nanogui::CheckBox(mainWindow, "Show triangles");
     chkShowTrianglesOnly->setChecked(false);

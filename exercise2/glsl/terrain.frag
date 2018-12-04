@@ -162,13 +162,14 @@ vec4 snowColor(vec3 dirToLight) {
     return colorLighting;
 }
 
+
 void main()
 {
     // For Oren-Nayar lighting, uncomment the following:
     // Based on: https://stackoverflow.com/questions/40583715/oren-nayar-lighting-in-opengl-how-to-calculate-view-direction-in-fragment-shade#40596525
-    vec3 dirToLight = vec3(1, 1, 0);
+    vec3 dirToLight = vec3(0.0, 1.0, 0.0);
     // vec3 dirToLight = normalize(vec3(-(gl_FragCoord.xy - screenSize/2) / (screenSize/4), 1.0));
-    // vec3 dirToLight = normalize(-fragmentPosition); //viewer is at the origin in camera space
+    // vec3 dirToLight = normalize(-gl_FragCoord.xyz); //viewer is at the origin in camera space
     color = mix(waterColor(dirToLight), terrainColor(dirToLight), FRAG_waterFactor);
     color = mix(snowColor(dirToLight), color, FRAG_snowFactor);
     color = brightnessContrast(color);
