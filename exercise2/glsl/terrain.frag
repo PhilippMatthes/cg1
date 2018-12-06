@@ -14,6 +14,8 @@ out vec4 color;
 
 uniform sampler2D grassTexture;
 uniform sampler2D rockTexture;
+uniform sampler2D rockNormalMap;
+uniform sampler2D rockRoughnessMap;
 uniform sampler2D roadColorTexture;
 uniform sampler2D alphaMap;
 uniform sampler2D roadSpecularMap;
@@ -105,10 +107,13 @@ vec4 terrainColor(vec3 dirToLight) {
     // Task 2.2.4 + 2.2.3
     // Based on: http://thedemonthrone.ca/projects/rendering-terrain/rendering-terrain-part-23-height-and-slope-based-colours/
     // Calculate terrain color
-	float slope = acos(FRAG_normals.z);
+    float slope = acos(FRAG_normals.z);
     float blend = (length(slope) - 0.25f) * (1.0f / (0.5f - 0.25f));
     blend = clamp(blend, 0.0, 1.0);
-    vec4 terrainColor = mix(texture(grassTexture, textureCoordinates), texture(rockTexture, textureCoordinates), blend);
+    vec4 rockNormals = texture(rockNormalMap, textureCoordinates);
+    float rockRoughness = texture(rockRoughnessMap, textureCoordinates).x;
+    vec4 rockColor = mix(texture(rockTexture, textureCoordinates), getReflectionColor(rockNormals.xyz), clamp(rockRoughness * 0.6, 0, 1));
+    vec4 terrainColor = mix(texture(grassTexture, textureCoordinates), rockColor, blend);
 
     // Calculate alpha map
     vec3 alphaMapColor = texture(alphaMap, FRAG_position.xz / 255).xyz;

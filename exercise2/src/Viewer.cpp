@@ -252,13 +252,15 @@ void Viewer::CreateGeometry()
 	//textures
 	grassTexture = CreateTexture((unsigned char*)grass_jpg, grass_jpg_size);
 	rockTexture = CreateTexture((unsigned char*)rock_jpg, rock_jpg_size);
+        rockNormalMap = CreateTexture((unsigned char*)rocknormals_jpg, rocknormals_jpg_size);
+        rockRoughnessMap = CreateTexture((unsigned char*)rockroughness_jpg, rockroughness_jpg_size);
 	roadColorTexture = CreateTexture((unsigned char*)roadcolor_jpg, roadcolor_jpg_size);
 	roadNormalMap = CreateTexture((unsigned char*)roadnormals_jpg, roadnormals_jpg_size);
 	roadSpecularMap = CreateTexture((unsigned char*)roadspecular_jpg, roadspecular_jpg_size);
 	waterNormalMap = CreateTexture((unsigned char*)waternormals_jpg, waternormals_jpg_size);
 	waterTexture = CreateTexture((unsigned char*)watertexture_jpg, watertexture_jpg_size);
 	snowTexture = CreateTexture((unsigned char*)snow_jpg, snow_jpg_size);
-    snowNormalMap = CreateTexture((unsigned char*)snownormals_jpg, snownormals_jpg_size);
+        snowNormalMap = CreateTexture((unsigned char*)snownormals_jpg, snownormals_jpg_size);
 
     skybox = loadCubemap();
 
@@ -412,45 +414,53 @@ void Viewer::drawContents()
 	glBindTexture(GL_TEXTURE_2D, rockTexture);
 	terrainShader.setUniform("rockTexture", 1, false);
 
-	glActiveTexture(GL_TEXTURE2);
+        glActiveTexture(GL_TEXTURE2);
+        glBindTexture(GL_TEXTURE_2D, rockNormalMap);
+        terrainShader.setUniform("rockNormalMap", 2, false);
+
+        glActiveTexture(GL_TEXTURE3);
+        glBindTexture(GL_TEXTURE_2D, rockRoughnessMap);
+        terrainShader.setUniform("rockRoughnessMap", 3, false);
+
+        glActiveTexture(GL_TEXTURE4);
 	glBindTexture(GL_TEXTURE_2D, roadColorTexture);
-	terrainShader.setUniform("roadColorTexture", 2, false);
+        terrainShader.setUniform("roadColorTexture", 4, false);
 
-	glActiveTexture(GL_TEXTURE3);
+        glActiveTexture(GL_TEXTURE5);
 	glBindTexture(GL_TEXTURE_2D, alphaMap);
-	terrainShader.setUniform("alphaMap", 3, false);
+        terrainShader.setUniform("alphaMap", 5, false);
 
-	glActiveTexture(GL_TEXTURE4);
+        glActiveTexture(GL_TEXTURE6);
 	glBindTexture(GL_TEXTURE_2D, roadSpecularMap);
-	terrainShader.setUniform("roadSpecularMap", 4, false);
+        terrainShader.setUniform("roadSpecularMap", 6, false);
 
-	glActiveTexture(GL_TEXTURE5);
+        glActiveTexture(GL_TEXTURE7);
 	glBindTexture(GL_TEXTURE_2D, roadNormalMap);
-	terrainShader.setUniform("roadNormalMap", 5, false);
+        terrainShader.setUniform("roadNormalMap", 7, false);
 
-	glActiveTexture(GL_TEXTURE6);
+        glActiveTexture(GL_TEXTURE8);
 	glBindTexture(GL_TEXTURE_2D, backgroundTexture);
-	terrainShader.setUniform("background", 6, false);
+        terrainShader.setUniform("background", 8, false);
 
-	glActiveTexture(GL_TEXTURE7);
+        glActiveTexture(GL_TEXTURE9);
 	glBindTexture(GL_TEXTURE_CUBE_MAP, skybox);
-	terrainShader.setUniform("skybox", 7, false);
-
-	glActiveTexture(GL_TEXTURE8);
-	glBindTexture(GL_TEXTURE_2D, waterNormalMap);
-	terrainShader.setUniform("waterNormalMap", 8, false);
-
-	glActiveTexture(GL_TEXTURE9);
-	glBindTexture(GL_TEXTURE_2D, waterTexture);
-	terrainShader.setUniform("waterTexture", 9, false);
+        terrainShader.setUniform("skybox", 9, false);
 
         glActiveTexture(GL_TEXTURE10);
-        glBindTexture(GL_TEXTURE_2D, snowTexture);
-        terrainShader.setUniform("snowTexture", 10, false);
+	glBindTexture(GL_TEXTURE_2D, waterNormalMap);
+        terrainShader.setUniform("waterNormalMap", 10, false);
 
-	glActiveTexture(GL_TEXTURE11);
+        glActiveTexture(GL_TEXTURE11);
+	glBindTexture(GL_TEXTURE_2D, waterTexture);
+        terrainShader.setUniform("waterTexture", 11, false);
+
+        glActiveTexture(GL_TEXTURE12);
+        glBindTexture(GL_TEXTURE_2D, snowTexture);
+        terrainShader.setUniform("snowTexture", 12, false);
+
+        glActiveTexture(GL_TEXTURE13);
 	glBindTexture(GL_TEXTURE_2D, snowNormalMap);
-	terrainShader.setUniform("snowNormalMap", 11, false);
+        terrainShader.setUniform("snowNormalMap", 13, false);
 
 	glClearDepth(1);
 	glEnable(GL_DEPTH_TEST);
