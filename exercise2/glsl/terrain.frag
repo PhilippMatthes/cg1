@@ -131,7 +131,7 @@ vec4 terrainColor(vec3 dirToLight) {
     vec3 blendedNormals = mix(FRAG_normals, n, alphaMapColor.x);
     float blendedSpecular = alphaMapColor.x * roadSpecular;
     color = calculateLighting(color, blendedSpecular, blendedNormals, dirToLight);
-
+    color = mix(color, getReflectionColor(blendedNormals), blendedSpecular * 0.6);
     return color;
 }
 
@@ -154,7 +154,7 @@ vec4 brightnessContrast(vec4 value) {
 
 vec4 snowColor(vec3 dirToLight) {
     vec2 textureCoordinates = FRAG_position.xz * 0.01;
-    float specular = 1.0;
+    float specular = 0.3;
     vec4 colorMaterial = texture(snowTexture, textureCoordinates);
     vec3 snowNormals = mix(texture(snowNormalMap, textureCoordinates).xyz, FRAG_normals, 0.5);
     vec4 colorReflection = mix(colorMaterial, getReflectionColor(snowNormals), 0.3);
