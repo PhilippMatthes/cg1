@@ -20,6 +20,24 @@ void CreateCube(HEMesh& mesh)
 {
 	mesh.clear();
 	/* Task 2.2.1 */
+	/* Source: https://tu-dresden.de/ing/informatik/smt/cgv/ressourcen/dateien/lehre/ws-18-19/cg1/CGI_03_Geometry.pdf?lang=de */
+	std::vector<OpenMesh::VertexHandle> vhandles(8);
+
+	vhandles[0] = mesh.add_vertex(OpenMesh::Vec3f(-0.5, -0.5, 0.5));
+	vhandles[1] = mesh.add_vertex(OpenMesh::Vec3f(0.5, -0.5, 0.5));
+	vhandles[2] = mesh.add_vertex(OpenMesh::Vec3f(-0.5, 0.5, 0.5));
+	vhandles[3] = mesh.add_vertex(OpenMesh::Vec3f(0.5, 0.5, 0.5));
+	vhandles[4] = mesh.add_vertex(OpenMesh::Vec3f(-0.5, -0.5, -0.5));
+	vhandles[5] = mesh.add_vertex(OpenMesh::Vec3f(0.5, -0.5, -0.5));
+	vhandles[6] = mesh.add_vertex(OpenMesh::Vec3f(-0.5, 0.5, -0.5));
+	vhandles[7] = mesh.add_vertex(OpenMesh::Vec3f(0.5, 0.5, -0.5));
+
+	mesh.add_face(vhandles[0], vhandles[1], vhandles[3], vhandles[2]);
+	mesh.add_face(vhandles[0], vhandles[2], vhandles[6], vhandles[4]);
+	mesh.add_face(vhandles[1], vhandles[5], vhandles[7], vhandles[3]);
+	mesh.add_face(vhandles[0], vhandles[4], vhandles[5], vhandles[1]);
+	mesh.add_face(vhandles[2], vhandles[3], vhandles[7], vhandles[6]);
+	mesh.add_face(vhandles[4], vhandles[6], vhandles[7], vhandles[5]);
 }
 
 void CreateTetrahedron(HEMesh& mesh, float a)
