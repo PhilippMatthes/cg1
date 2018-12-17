@@ -10,6 +10,7 @@ float ComputeSurfaceArea(const HEMesh& m)
 {
 	float area = 0;
 	/* Task 2.2.2 */
+	// http://paulbourke.net/geometry/polygonmesh/
 	// iterator over all faces
 	for (OpenMesh::PolyConnectivity::FaceIter
 				f_it=m.faces_begin();
