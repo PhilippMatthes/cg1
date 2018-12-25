@@ -5,6 +5,8 @@
 #include "Stripification.h"
 
 #include <random>
+#include <Stripification.h>
+
 #include "sample_set.h"
 
 
@@ -15,24 +17,51 @@ unsigned int ExtractTriStrips(HEMesh& mesh, OpenMesh::FPropHandleT<int> perFaceS
 	//prepare random engine
 	std::mt19937 eng;
 
-	/*
-	 * The basic algorithm consists of several steps:
-	 1. If there are no more triangles in the triangulation then exit.
-	 2. Find the triangle t with the least number of neighbors (if more than one exists, choose arbitrary).
-	 3. Start a new strip.
-	 4. Insert the triangle t to the strip and remove it from the triangulation.
-	 5. If there is no neighboring triangle to triangle t then go to 1.
-	 6. Choose a new triangle t', neighboring to triangle t, with the least number of neighbors. If there is more than one triangle t' with the same least number of neighbors, look one level ahead. If there is a tie again, choose t' arbitrarily.
-	 7. t <- t' . Go to 4.
-	 */
-
-	//initialize strip index to -1 for each face
-	for (auto f : mesh.faces())
-		mesh.property(perFaceStripIdProperty, f) = -1;
-
-	int nStrips = 0;
+	unsigned int nStrips = 0;
 
 	/*Task 2.2.5*/
-	
+
+	sample_set<OpenMesh::FaceHandle> unassigned_triangles; // Set of not yet assigned triangles (index -1)
+	//initialize strip index to -1 for each face
+	for (auto f : mesh.faces()){
+		mesh.property(perFaceStripIdProperty, f) = -1;
+		unassigned_triangles.insert(f); //store as not yet assigned triangle
+	}
+
+	int stripId = -1; //initial strip index used for triangles
+
+	// If there are no more triangles in the triangulation then exit.
+	while (!unassigned_triangles.empty()){
+		//randomly select 𝑘=nTrials seed pointers inside not yet assigned triangles (index -1)
+		sample_set<OpenMesh::FaceHandle> seed_pointers;
+		for (int i = 0; i < nTrials; ++i) {
+			seed_pointers.insert(unassigned_triangles.sample(eng));
+		}
+
+		sample_set<OpenMesh::FaceHandle> triangle_strip;
+
+		//from each seed, determine maximum strip length stepping forward &  backward
+		for (int j = 0; j < nTrials; ++j) {
+			sample_set<OpenMesh::FaceHandle> calculatedTriangleStrip = calculateTriangleStrip(seed_pointers.elements[j]);
+			if (calculatedTriangleStrip.size() > triangle_strip.size()) // and select longest strip (greedy choice)
+				triangle_strip = calculatedTriangleStrip;
+		}
+
+		//allocate new strip index
+		stripId++;
+		//and assign it to all triangles in the selected strip
+		for (int k=0; k < triangle_strip.size(); ++k) {
+			OpenMesh::FaceHandle faceHandle = triangle_strip.elements[k];
+			mesh.property(perFaceStripIdProperty, faceHandle) = stripId;
+			unassigned_triangles.remove(faceHandle);
+		}
+		nStrips++;
+	}
 	return nStrips;
+}
+
+sample_set<OpenMesh::FaceHandle> calculateTriangleStrip(OpenMesh::FaceHandle seed_pointer) {
+	sample_set<OpenMesh::FaceHandle> triangle_strip;
+	triangle_strip.insert(seed_pointer);
+	return triangle_strip;
 }
