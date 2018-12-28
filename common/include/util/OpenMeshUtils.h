@@ -48,9 +48,18 @@ public:
 	//Update the underlying buffers based on the current geometry in the referenced mesh
 	void Update();
 
-	void UpdateWithPerFaceColor(OpenMesh::FPropHandleT<Eigen::Vector4f> colorProperty);
+    GLuint gBuffer;
+    GLuint gPosition, gNormal, gAlbedo;
 
-	void Render(const Eigen::Matrix4f& view, const Eigen::Matrix4f& projection, bool flatShading = false, bool withTexCoords = false, const Eigen::Vector4f& color = Eigen::Vector4f(0.8f, 0.7f, 0.6f, 1.0f)) const;
+    float MeshRenderer::lerp(float a, float b, float f);
+	void UpdateWithPerFaceColor(OpenMesh::FPropHandleT<Eigen::Vector4f> colorProperty);
+    void MeshRenderer::UpdateSSAOBuffers();
+    std::vector<Eigen::Vector3f> ssaoKernel;
+    GLuint noiseTexture;
+
+    void Render(const Eigen::Matrix4f& view, const Eigen::Matrix4f& projection, bool flatShading = false, bool withTexCoords = false, const Eigen::Vector4f& color = Eigen::Vector4f(0.8f, 0.7f, 0.6f, 1.0f)) const;
+	void RenderGBuffer(const Eigen::Matrix4f& view, const Eigen::Matrix4f& projection, bool flatShading = false, bool withTexCoords = false, const Eigen::Vector4f& color = Eigen::Vector4f(0.8f, 0.7f, 0.6f, 1.0f)) const;
+	void RenderSSAO(const Eigen::Matrix4f& view, const Eigen::Matrix4f& projection, bool flatShading = false, bool withTexCoords = false, const Eigen::Vector4f& color = Eigen::Vector4f(0.8f, 0.7f, 0.6f, 1.0f)) const;
 	void RenderTextureMap(const Eigen::Matrix4f& projection, const Eigen::Vector4f& color) const;
 
 private:	

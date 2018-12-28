@@ -17,5 +17,6 @@ public:
 
 	nse::gui::GLShader meshShader;
     nse::gui::GLShader ssaoShader;
+    nse::gui::GLShader geometryShader;
 	nse::gui::GLShader simpleShader;
 };
