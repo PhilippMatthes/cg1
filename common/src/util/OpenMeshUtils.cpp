@@ -175,6 +175,22 @@ void MeshRenderer::Render(const Eigen::Matrix4f& view, const Eigen::Matrix4f& pr
 	if (indexCount == 0)
 		return;
 
+	auto& ssao = ShaderPool::Instance()->meshShader;
+	ssao.bind();
+	ssao.setUniform("view", view);
+	ssao.setUniform("proj", projection);
+	ssao.setUniform("flatShading", flatShading ? 1 : 0);
+	ssao.setUniform("perVertexColor", hasColor ? 1 : 0);
+	ssao.setUniform("visualizeTexCoords", withTexCoords ? 1 : 0);
+	ssao.setUniform("color", color);
+
+	vao.bind();
+	if (hasColor)
+		glDrawArrays(GL_TRIANGLES, 0, indexCount);
+	else
+		glDrawElements(GL_TRIANGLES, indexCount, GL_UNSIGNED_INT, 0);
+	vao.unbind();
+
 	auto& shader = ShaderPool::Instance()->meshShader;
 	shader.bind();
 	shader.setUniform("view", view);

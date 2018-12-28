@@ -3,7 +3,8 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include ${CMAKE_CURRENT_BINARY_D
 add_definitions(-DHAVE_TESSELLATION=true)
 
 set(GLSL_FILES	mesh.vert mesh.frag
-				simple.vert simple.frag)
+				simple.vert simple.frag
+				ssao.vert ssao.frag)
 ProcessGLSLFiles(GLSL_FILES)
 
 add_library(CG1Common STATIC

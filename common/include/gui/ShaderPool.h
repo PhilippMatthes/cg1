@@ -16,5 +16,6 @@ public:
 	void CompileShaders();
 
 	nse::gui::GLShader meshShader;
+    nse::gui::GLShader ssaoShader;
 	nse::gui::GLShader simpleShader;
 };
