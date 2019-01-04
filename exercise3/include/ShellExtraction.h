@@ -9,3 +9,5 @@
 //Finds the connected components in the mesh. Writes the non-negative shell index into perFaceShellIndex
 //and returns the number of shells.
 unsigned int ExtractShells(HEMesh& m, OpenMesh::FPropHandleT<int> perFaceShellIndex);
+void connectedShell(HEMesh& m, OpenMesh::FPropHandleT<int> perFaceShellIndex, OpenMesh::FaceHandle seed, unsigned int shellId);
+std::vector<OpenMesh::FaceHandle> getConnectedFaces(HEMesh& m, OpenMesh::FPropHandleT<int> perFaceShellIndex, OpenMesh::FaceHandle faceHandle);
