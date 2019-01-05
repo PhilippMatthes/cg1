@@ -51,11 +51,12 @@ Viewer::Viewer()
 
 	polymesh.add_property(faceIdProperty);
 	polymesh.add_property(faceColorProperty);
+	polymesh.add_property(vertexCogProperty);
 }
 
 void Viewer::SetupGUI()
 {
-	auto mainWindow = SetupMainWindow();	
+	auto mainWindow = SetupMainWindow();
 
 	auto loadFileBtn = new nanogui::Button(mainWindow, "Load Mesh");
 	loadFileBtn->setCallback([this]() {
@@ -130,7 +131,7 @@ void Viewer::SetupGUI()
 				break;
 			}
 		}
-		
+
 		auto vol = ComputeVolume(polymesh);
 		std::stringstream ss;
 		ss << "The mesh has a volume of " << vol << ".";
@@ -163,10 +164,10 @@ void Viewer::SetupGUI()
 
 	sldSmoothingStrength = nse::gui::AddLabeledSliderWithDefaultDisplay(mainWindow, "Smoothing Strength", std::make_pair(0.0f, 1.0f), 0.1f, 2);
 
-	
+
 	auto smoothBtn = new nanogui::Button(mainWindow, "Laplacian Smoothing");
 	smoothBtn->setCallback([this]() {
-		SmoothUniformLaplacian(polymesh, sldSmoothingStrength->value(), smoothingIterations);
+		SmoothUniformLaplacian(polymesh, sldSmoothingStrength->value(), smoothingIterations, vertexCogProperty);
 		MeshUpdated();
 	});
 

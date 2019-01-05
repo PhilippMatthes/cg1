@@ -7,6 +7,8 @@
 #include "util/OpenMeshUtils.h"
 
 //Updates the vertex positions by Laplacian smoothing
-void SmoothUniformLaplacian(HEMesh& m, float lambda, unsigned int iterations);
+void SmoothUniformLaplacian(HEMesh& m, float lamda, unsigned int iterations, OpenMesh::VPropHandleT<OpenMesh::Vec3f> vertexCogProperty);
+void ComputeCOG(HEMesh& m, OpenMesh::VPropHandleT<OpenMesh::Vec3f> vertexCogProperty, OpenMesh::VertexHandle vertexHandle);
+void SetNewPosition(HEMesh& m, float lamda, OpenMesh::VPropHandleT<OpenMesh::Vec3f> vertexCogProperty, OpenMesh::VertexHandle vertexHandle);
 
 void AddNoise(HEMesh& m);

@@ -32,4 +32,5 @@ private:
 
 	OpenMesh::FPropHandleT<int> faceIdProperty;
 	OpenMesh::FPropHandleT<Eigen::Vector4f> faceColorProperty;
+	OpenMesh::VPropHandleT<OpenMesh::Vec3f > vertexCogProperty;
 };
