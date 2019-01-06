@@ -52,6 +52,9 @@ Viewer::Viewer()
 	polymesh.add_property(faceIdProperty);
 	polymesh.add_property(faceColorProperty);
 	polymesh.add_property(vertexCogProperty);
+	polymesh.add_property(atheta);
+	polymesh.add_property(btheta);
+	polymesh.add_property(eWeights);
 }
 
 void Viewer::SetupGUI()
@@ -170,6 +173,12 @@ void Viewer::SetupGUI()
 		SmoothUniformLaplacian(polymesh, sldSmoothingStrength->value(), smoothingIterations, vertexCogProperty);
 		MeshUpdated();
 	});
+
+    auto smoothBtnLaplaceBeltrami = new nanogui::Button(mainWindow, "Smoothing Using Cotangents");
+	smoothBtnLaplaceBeltrami->setCallback([this]() {
+		SmoothCotangentLaplacian(polymesh, sldSmoothingStrength->value(), smoothingIterations, vertexCogProperty, eWeights, atheta, btheta);
+        MeshUpdated();
+    });
 
 	nanogui::TextBox* txtStripificationTrials;
 	auto sldStripificationTrials = nse::gui::AddLabeledSlider(mainWindow, "Stripification Trials", std::make_pair(1, 50), 20, txtStripificationTrials);
