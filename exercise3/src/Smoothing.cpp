@@ -50,9 +50,11 @@ void ComputeCOG(HEMesh &m, OpenMesh::VPropHandleT<OpenMesh::Vec3f> vertexCogProp
         cog += m.point( vv_it );
 		++valence;
 	}
-    m.property(vertexCogProperty, vertexHandle) = (cog/=valence);
+    cog/=valence;
+    m.property(vertexCogProperty, vertexHandle) = (cog);
 }
 
+//Source: http://graphics.stanford.edu/courses/cs468-12-spring/LectureSlides/06_smoothing.pdf
 void ComputeCOGCotangent(HEMesh &m,  OpenMesh::VPropHandleT<OpenMesh::Vec3f> vertexCogProperty, OpenMesh::EPropHandleT<double> eWeights, OpenMesh::EPropHandleT<double> atheta, OpenMesh::EPropHandleT<double> btheta, OpenMesh::VertexHandle vertexHandle) {
     double valence = 0, weight=0;
     OpenMesh::HalfedgeHandle h0, h1;
@@ -63,39 +65,48 @@ void ComputeCOGCotangent(HEMesh &m,  OpenMesh::VPropHandleT<OpenMesh::Vec3f> ver
         p1 = m.point(m.to_vertex_handle(vhe_it.operator*()));       //pj
         auto edgeHandle = m.edge_handle(vhe_it.operator*());
         weight = m.property(eWeights, edgeHandle);                  //Get alpha{i,j] + beta{i,j}
-        cog += weight * (p1 - p0);
+        cog += weight * p1;
         valence += weight;
     }
+    cog-=m.point(vertexHandle);
     cog/=valence;
     m.property(vertexCogProperty, vertexHandle) = (cog);
 }
 
 void CotanWeight(HEMesh& mesh, OpenMesh::EPropHandleT<double> eWeights, OpenMesh::EPropHandleT<double>atheta, OpenMesh::EPropHandleT<double>btheta) {
-    double weight, a, b;
-    OpenMesh::HalfedgeHandle h0, h1, h2;
-    OpenMesh::Vec3f p0, p1, p2, d0, d1;
+    double weight, a, b, c, d;
+    OpenMesh::HalfedgeHandle h0, h1, h2, pi_pj, pj_pi, pj_pj_minus_1, pj_pj_plus_1;
+    OpenMesh::Vec3f p0, p1, p2, d0, d1, p_i, p_j, p_j_minus_1, p_j_plus_1;
     const float pi = 3.14159265359f;
 
     for (OpenMesh::PolyConnectivity::EdgeIter e_it = mesh.edges_begin(); e_it != mesh.edges_end(); ++e_it) {
         weight = 0.0;
 
-        h0 = mesh.halfedge_handle(*e_it, 0);
-        p0 = mesh.point(mesh.to_vertex_handle(h0));
-        h1 = mesh.halfedge_handle(*e_it, 1);
-        p1 = mesh.point(mesh.to_vertex_handle(h1));
+        pi_pj = mesh.halfedge_handle(*e_it, 0);
+        pj_pi = mesh.opposite_halfedge_handle(pi_pj);
+        p_i = mesh.point(mesh.from_vertex_handle(pi_pj));
+        p_j = mesh.point(mesh.to_vertex_handle(pi_pj));
 
-        h2 = mesh.next_halfedge_handle(h0);
-        p2 = mesh.point(mesh.to_vertex_handle(h2));
-        d0 = (p0 - p2); d0.normalize();
-        d1 = (p1 - p2); d1.normalize();
+        pj_pj_minus_1 = mesh.next_halfedge_handle(pi_pj);
+        p_j_minus_1 = mesh.point(mesh.to_vertex_handle(pj_pj_minus_1));
+        d0 = (p_i - p_j_minus_1); d0.normalize();
+        d1 = (p_j - p_j_minus_1); d1.normalize();
+        c = acos(dot((p_i-p_j).normalize(), (p_j_minus_1 - p_j).normalize()));
+        d = acos(dot((p_j-p_i).normalize(), (p_j_minus_1 - p_i).normalize()));
         a = acos(dot(d0, d1));
+        if(a > pi / 2 || c > pi / 2 || d > pi / 2)
+            std::cout << "obtuse triangle" << std::endl;
         weight += 1.0f / tan(a);
 
-        h2 = mesh.next_halfedge_handle(h1);
-        p2 = mesh.point(mesh.to_vertex_handle(h2));
-        d0 = (p0 - p2); d0.normalize();
-        d1 = (p1 - p2); d1.normalize();
+        pj_pj_plus_1 = mesh.next_halfedge_handle(pj_pi);
+        p_j_plus_1 = mesh.point(mesh.to_vertex_handle(pj_pj_plus_1));
+        d0 = (p_i - p_j_plus_1); d0.normalize();
+        d1 = (p_j - p_j_plus_1); d1.normalize();
+        c = acos(dot((p_i-p_j).normalize(), (p_j_plus_1 - p_j).normalize()));
+        d = acos(dot((p_j-p_i).normalize(), (p_j_plus_1 - p_i).normalize()));
         b = acos(dot(d0, d1));
+        if(b > pi / 2 || c > pi / 2 || d > pi / 2)
+            std::cout << "obtuse triangle" << std::endl;
         weight += 1.0f / tan(b);
 
         mesh.property(eWeights, *e_it) = weight;
