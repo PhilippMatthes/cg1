@@ -75,7 +75,7 @@ void ComputeCOGCotangent(HEMesh &m,  OpenMesh::VPropHandleT<OpenMesh::Vec3f> ver
 
 void CotanWeight(HEMesh& mesh, OpenMesh::EPropHandleT<double> eWeights, OpenMesh::EPropHandleT<double>atheta, OpenMesh::EPropHandleT<double>btheta) {
     double weight, a, b, c, d;
-    OpenMesh::HalfedgeHandle h0, h1, h2, pi_pj, pj_pi, pj_pj_minus_1, pj_pj_plus_1;
+    OpenMesh::HalfedgeHandle pi_pj, pj_pi, pj_pj_minus_1, pj_pj_plus_1;
     OpenMesh::Vec3f p0, p1, p2, d0, d1, p_i, p_j, p_j_minus_1, p_j_plus_1;
     const float pi = 3.14159265359f;
 
