@@ -97,7 +97,9 @@ Eigen::Vector3f LineSegment::ClosestPoint(const Eigen::Vector3f& p) const
 {
 	//the two endpoints of the line segment are v0,v1
 	/* Task 3.2.1 */
-	return Eigen::Vector3f(0,0,0);
+	Eigen::Vector3f o = v0; 		//origin of the line
+ 	Eigen::Vector3f d = (v1-v0);	//direction vector of the line		
+	return ((o-p)-(((o-p).dot(d)) * d));
 }
 
 //returns the squared distance between point p and the line segment
