@@ -47,7 +47,26 @@ void GridTraverser::Init()
 	/* Task 3.2.2 */
 	//you can add some precalculation code here
 	// https://tu-dresden.de/ing/informatik/smt/cgv/ressourcen/dateien/lehre/ws-18-19/cg1/CGI_11_Grids-and-Hierarchies.pdf?lang=de
+	// https://stackoverflow.com/questions/49188302/how-can-you-iterate-linearly-through-a-3d-grid
+	// https://www.scratchapixel.com/lessons/advanced-rendering/introduction-acceleration-structure/grid
+	// http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.42.3443&rep=rep1&type=pdf
+	// https://github.com/francisengelmann/fast_voxel_traversal/blob/master/main.cpp
 
+	stepX = dir(0) < 0 ? -cellExtents(0) : cellExtents(0);
+	stepY = dir(1) < 0 ? -cellExtents(1) : cellExtents(1);
+	stepZ = dir(2) < 0 ? -cellExtents(2) : cellExtents(2);
+
+	float nextVoxelBoundaryX = (current(0) + stepX) * cellExtents(0);
+	float nextVoxelBoundaryY = (current(1) + stepY) * cellExtents(1);
+	float nextVoxelBoundaryZ = (current(2) + stepZ) * cellExtents(2);
+
+	tMaxX = (nextVoxelBoundaryX - orig(0)) / dir(0);
+	tMaxY = (nextVoxelBoundaryY - orig(1)) / dir(1);
+	tMaxZ = (nextVoxelBoundaryZ - orig(2)) / dir(2);
+
+	tDeltaX = cellExtents(0) / dir(0) * stepX;
+	tDeltaY = cellExtents(1) / dir(1) * stepY;
+	tDeltaZ = cellExtents(2) / dir(2) * stepZ;
 }
 
 void GridTraverser::operator++(int)
@@ -55,7 +74,24 @@ void GridTraverser::operator++(int)
 	/* Task 3.2.2 */
 	//traverse one step along the ray
 	//update the cell index stored in attribute "current"
-
+	if (tMaxX < tMaxY) {
+		if (tMaxX < tMaxZ) {
+			orig(0) += stepX;
+			tMaxX += tDeltaX;
+		} else {
+			orig(2) += stepZ;
+			tMaxZ += tDeltaZ;
+		}
+	} else {
+		if (tMaxY < tMaxZ) {
+			orig(1) += stepY;
+			tMaxY += tDeltaY;
+		} else {
+			orig(2) += stepZ;
+			tMaxZ += tDeltaZ;
+		}
+	}
+	current = PositionToCellIndex(orig, cellExtents);
 }
 
 Eigen::Vector3i GridTraverser::operator*()
