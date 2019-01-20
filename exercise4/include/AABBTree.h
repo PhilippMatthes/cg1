@@ -12,6 +12,7 @@
 #include "Triangle.h"
 #include "LineSegment.h"
 #include "Point.h"
+#include <iostream>
 
 
 /**
@@ -398,7 +399,61 @@ public:
 		if(root == nullptr)
 			return ResultEntry();
 		/* Task 3.2.1 */
-		return ClosestPrimitiveLinearSearch(q);	
+
+        ResultEntry best;
+        // Queue of not yet traversed Nodes in the AABB tree, sorted by their squared distance to q
+        std::priority_queue<SearchEntry> Q_min;
+        // get the distance to the root of our AABB tree
+        float sqrDistance = root->GetBounds().SqrDistance(q);
+        // start at the root of the AABB tree
+        Q_min.push(SearchEntry(sqrDistance, root));
+        bool closest_primitive_found = false;
+
+        while (!closest_primitive_found){
+            // get the closes Node in our Queue
+            SearchEntry searchEntry = Q_min.top();
+            //remove it from our Queue
+            Q_min.pop();
+            // if this node is a Leaf Node
+            if (searchEntry.node->IsLeaf()){
+                // we will check all of its primitive
+                // to find the one which is closest to q
+                auto leaf = (AABBLeafNode*) searchEntry.node;
+                auto pend = leaf->end();
+                for(auto pit = leaf->begin(); pit != pend; ++pit)
+                {
+                    sqrDistance = pit->SqrDistance(q);
+                    if(sqrDistance < best.sqrDistance )
+                    {
+                        best.sqrDistance = sqrDistance;
+                        best.prim = &(*pit);
+                    }
+                }
+
+
+            } else{
+                // if this node is not a Leaf Node
+                // it will be a Split Node
+                // thus we can calculate the distance to both of its child nodes
+                // and queue both of them
+                auto node = (AABBSplitNode*)(searchEntry.node);
+                auto right = node->Right();
+                auto left = node->Left();
+                sqrDistance = right->GetBounds().SqrDistance(q);
+                Q_min.push(SearchEntry(sqrDistance, node->Right()));
+
+                sqrDistance = left->GetBounds().SqrDistance(q);
+                Q_min.push(SearchEntry(sqrDistance, node->Left()));
+
+            }
+            // if the closest Node of our queued Nodes has a greater squared distance
+            // then our yet found best solution primitive
+            // this means, there will be no primitive which is closer to q
+            // thus we can stop here and return
+            if (Q_min.top().sqrDistance > best.sqrDistance)
+                closest_primitive_found = true;
+        }
+        return best;
 	}
 
 	//return the closest point position on the closest primitive in the tree with respect to the query point q
