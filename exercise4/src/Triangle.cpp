@@ -5,6 +5,7 @@
 #include "Triangle.h"
 #include "GridUtils.h"
 #include <tuple>
+#include <iostream>
 
 
 //default constructor
@@ -29,7 +30,10 @@ Triangle::Triangle(const HEMesh&m, const OpenMesh::FaceHandle& f):h(f)
 Box Triangle::ComputeBounds() const
 {
 	/* Task 3.2.2 */
-	Box b;		
+	Box b;
+	b.Insert(v0);
+	b.Insert(v1);
+	b.Insert(v2);
 	return b;
 }
 
@@ -38,8 +42,61 @@ Box Triangle::ComputeBounds() const
 bool Triangle::Overlaps(const Box& b) const
 {
 	/* Task 3.2.2 */
-	//carefully look at the interface of the box class, there might be a lot of useful helper functions
-	return true;	
+	/*
+	 * 	[3 tests] e0 = (1, 0, 0), e1 = (0, 1, 0), e2 = (0, 0, 1) (the normals of the
+		AABB). Test the AABB against the minimal AABB around the triangle
+	 */
+	std::vector<Eigen::Vector3f> e;
+	Eigen::Vector3f e0 (1, 0, 0);
+	Eigen::Vector3f e1 (0, 1, 0);
+	Eigen::Vector3f e2 (0, 0, 1);
+	e.push_back(e0);
+	e.push_back(e1);
+	e.push_back(e2);
+	/*
+	 * 	[1 test] n, the normal of ∆. We use a fast plane/AABB overlap test [5, 6],
+		which only tests the two diagonal vertices, whose direction is most closely
+		aligned to the normal of the triangle.
+	 */
+	std::vector<Eigen::Vector3f> f;
+	Eigen::Vector3f f0 = v1 - v0;
+	Eigen::Vector3f f1 = v2 - v1;
+	Eigen::Vector3f f2 = v0 - v2;
+	f.push_back(f0);
+	f.push_back(f1);
+	f.push_back(f2);
+	Eigen::Vector3f n = f0.cross(f1);
+	/*
+	 * 	[9 tests] aij = ei × fj , i, j ∈ {0, 1, 2}, where f0 = v1 − v0, f1 = v2 − v1,
+		and f2 = v0 − v2. These tests are very similar and we will only show the
+		derivation of the case where i = 0 and j = 0 (see below).
+	 */
+	std::vector<Eigen::Vector3f> a;
+	for (int i = 0; i < 3; i += 1) {
+		for (int j = 0; j < 3; j += 1) {
+			Eigen::Vector3f ei = e[i];
+			Eigen::Vector3f fj = f[j];
+			Eigen::Vector3f aij = ei.cross(fj);
+			a.push_back(aij);
+		}
+	}
+
+	std::vector<Eigen::Vector3f> v;
+	v.insert(v.end(), e.begin(), e.end());
+	v.push_back(n);
+	v.insert(v.end(), a.begin(), a.end());
+
+	for (auto const& vi : v) {
+		float p0 = vi.dot(v0);
+		float p1 = vi.dot(v1);
+		float p2 = vi.dot(v2);
+
+		Eigen::Vector3f h = b.HalfExtents();
+		float r = h(0) * abs(vi(0)) + h(1) * abs(vi(1)) + h(2) * abs(vi(2));
+		if (std::min(std::min(p0, p1), p2) > r || std::max(std::max(p0, p1), p2) < -r) return false;
+	}
+
+	return true;
 }
 //returns the barycentric coordinates of the point with the smallest distance to point p which lies on the triangle
 void Triangle::ClosestPointBarycentric(const Eigen::Vector3f& p, float& l0, float& l1, float& l2) const

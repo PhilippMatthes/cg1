@@ -46,6 +46,8 @@ void GridTraverser::Init()
 	current = PositionToCellIndex(orig, cellExtents);
 	/* Task 3.2.2 */
 	//you can add some precalculation code here
+	// https://tu-dresden.de/ing/informatik/smt/cgv/ressourcen/dateien/lehre/ws-18-19/cg1/CGI_11_Grids-and-Hierarchies.pdf?lang=de
+
 }
 
 void GridTraverser::operator++(int)
@@ -53,6 +55,7 @@ void GridTraverser::operator++(int)
 	/* Task 3.2.2 */
 	//traverse one step along the ray
 	//update the cell index stored in attribute "current"
+
 }
 
 Eigen::Vector3i GridTraverser::operator*()
