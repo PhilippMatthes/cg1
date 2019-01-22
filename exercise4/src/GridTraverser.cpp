@@ -52,6 +52,7 @@ void GridTraverser::Init()
 	// http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.42.3443&rep=rep1&type=pdf
 	// https://github.com/francisengelmann/fast_voxel_traversal/blob/master/main.cpp
 
+
 	stepX = dir(0) < 0 ? -cellExtents(0) : cellExtents(0);
 	stepY = dir(1) < 0 ? -cellExtents(1) : cellExtents(1);
 	stepZ = dir(2) < 0 ? -cellExtents(2) : cellExtents(2);
@@ -60,9 +61,13 @@ void GridTraverser::Init()
 	float nextVoxelBoundaryY = (current(1) + stepY) * cellExtents(1);
 	float nextVoxelBoundaryZ = (current(2) + stepZ) * cellExtents(2);
 
-	tMaxX = (nextVoxelBoundaryX - orig(0)) / dir(0);
-	tMaxY = (nextVoxelBoundaryY - orig(1)) / dir(1);
-	tMaxZ = (nextVoxelBoundaryZ - orig(2)) / dir(2);
+	if (stepX < 0) nextVoxelBoundaryX += cellExtents(0);
+    if (stepY < 0) nextVoxelBoundaryY += cellExtents(1);
+    if (stepZ < 0) nextVoxelBoundaryZ += cellExtents(2);
+
+	tMaxX = dir(0) != 0.0 ? (nextVoxelBoundaryX - orig(0)) / dir(0) : FLT_MAX;
+	tMaxY = dir(1) != 0.0 ? (nextVoxelBoundaryY - orig(1)) / dir(1) : FLT_MAX;
+	tMaxZ = dir(2) != 0.0 ? (nextVoxelBoundaryZ - orig(2)) / dir(2) : FLT_MAX;
 
 	tDeltaX = cellExtents(0) / dir(0) * stepX;
 	tDeltaY = cellExtents(1) / dir(1) * stepY;
