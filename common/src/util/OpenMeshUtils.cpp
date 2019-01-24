@@ -2,6 +2,7 @@
 
 #include <vector>
 #include <gui/ShaderPool.h>
+#include <random>
 
 MeshRenderer::MeshRenderer(const HEMesh& mesh)
 	: mesh(mesh), indexCount(0),
@@ -86,6 +87,7 @@ void MeshRenderer::Update()
 	hasColor = false;
 
 	UpdateTextureMapBuffers();
+	// UpdateSSAOBuffers();
 }
 
 void MeshRenderer::UpdateWithPerFaceColor(OpenMesh::FPropHandleT<Eigen::Vector4f> colorProperty)
@@ -170,12 +172,121 @@ void MeshRenderer::UpdateTextureMapBuffers()
 	vaoTexCoords.unbind();
 }
 
+float MeshRenderer::lerp(float a, float b, float f)
+{
+	return a + f * (b - a);
+}
+
+void MeshRenderer::UpdateSSAOBuffers()
+{
+	const GLuint SCR_WIDTH = 1280, SCR_HEIGHT = 720;
+
+	glGenFramebuffers(1, &gBuffer);
+	glBindFramebuffer(GL_FRAMEBUFFER, gBuffer);
+
+	// - Position color buffer
+	glGenTextures(1, &gPosition);
+	glBindTexture(GL_TEXTURE_2D, gPosition);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, SCR_WIDTH, SCR_HEIGHT, 0, GL_RGB, GL_FLOAT, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, gPosition, 0);
+
+	// - Normal color buffer
+	glGenTextures(1, &gNormal);
+	glBindTexture(GL_TEXTURE_2D, gNormal);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, SCR_WIDTH, SCR_HEIGHT, 0, GL_RGB, GL_FLOAT, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, gNormal, 0);
+
+	// - Color + Specular color buffer
+	glGenTextures(1, &gAlbedo);
+	glBindTexture(GL_TEXTURE_2D, gAlbedo);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, SCR_WIDTH, SCR_HEIGHT, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, gAlbedo, 0);
+
+	// - Tell OpenGL which color attachments we'll use (of this framebuffer) for rendering
+	GLuint attachments[3] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2 };
+	glDrawBuffers(3, attachments);
+
+	// generate sample kernel
+	// ----------------------
+	std::uniform_real_distribution<GLfloat> randomFloats(0.0, 1.0); // generates random floats between 0.0 and 1.0
+	std::default_random_engine generator;
+	for (unsigned int i = 0; i < 64; ++i)
+	{
+		Eigen::Vector3f sample(randomFloats(generator) * 2.0f - 1.0f, randomFloats(generator) * 2.0f - 1.0f, randomFloats(generator));
+		sample.normalize();
+		sample *= randomFloats(generator);
+		float scale = float(i) / 64.0f;
+
+		// scale samples s.t. they're more aligned to center of kernel
+		scale = MeshRenderer::lerp(0.1f, 1.0f, scale * scale);
+		sample *= scale;
+		ssaoKernel.push_back(sample);
+	}
+
+	// generate noise texture
+	// ----------------------
+	std::vector<Eigen::Vector3f> ssaoNoise;
+	for (unsigned int i = 0; i < 16; i++)
+	{
+		Eigen::Vector3f noise(randomFloats(generator) * 2.0 - 1.0, randomFloats(generator) * 2.0 - 1.0, 0.0f);
+		ssaoNoise.push_back(noise);
+	}
+	glGenTextures(1, &noiseTexture);
+	glBindTexture(GL_TEXTURE_2D, noiseTexture);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, 4, 4, 0, GL_RGB, GL_FLOAT, &ssaoNoise[0]);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+}
+
 void MeshRenderer::Render(const Eigen::Matrix4f& view, const Eigen::Matrix4f& projection, bool flatShading, bool withTexCoords, const Eigen::Vector4f& color) const
 {
 	if (indexCount == 0)
 		return;
 
+	MeshRenderer::RenderGBuffer(view, projection, flatShading, withTexCoords, color);
+	MeshRenderer::RenderSSAO(view, projection, flatShading, withTexCoords, color);
+
 	auto& shader = ShaderPool::Instance()->meshShader;
+	shader.bind();
+	shader.setUniform("view", view);
+	shader.setUniform("proj", projection);
+	shader.setUniform("flatShading", flatShading ? 1 : 0);
+	shader.setUniform("perVertexColor", hasColor ? 1 : 0);
+	shader.setUniform("visualizeTexCoords", withTexCoords ? 1 : 0);
+	shader.setUniform("color", color);
+
+	vao.bind();
+	if (hasColor)
+		glDrawArrays(GL_TRIANGLES, 0, indexCount);
+	else
+		glDrawElements(GL_TRIANGLES, indexCount, GL_UNSIGNED_INT, 0);
+	vao.unbind();
+}
+
+void MeshRenderer::RenderGBuffer(const Eigen::Matrix4f& view, const Eigen::Matrix4f& projection, bool flatShading, bool withTexCoords, const Eigen::Vector4f& color) const {
+	auto& shader = ShaderPool::Instance()->geometryShader;
+	shader.bind();
+
+	vao.bind();
+	if (hasColor)
+		glDrawArrays(GL_TRIANGLES, 0, indexCount);
+	else
+		glDrawElements(GL_TRIANGLES, indexCount, GL_UNSIGNED_INT, 0);
+	vao.unbind();
+}
+
+void MeshRenderer::RenderSSAO(const Eigen::Matrix4f& view, const Eigen::Matrix4f& projection, bool flatShading, bool withTexCoords, const Eigen::Vector4f& color) const {
+	auto& shader = ShaderPool::Instance()->ssaoShader;
 	shader.bind();
 	shader.setUniform("view", view);
 	shader.setUniform("proj", projection);

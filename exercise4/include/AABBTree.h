@@ -387,9 +387,61 @@ public:
 	//closest k primitive computation 
 	std::vector<ResultEntry> ClosestKPrimitives(size_t k,const Eigen::Vector3f& q) const
 	{
-		//student begin
-		return ClosestKPrimitivesLinearSearch(k,q);
-		//student end
+		std::cout << "Using k nearest neighbours" << std::endl;
+		assert(IsCompleted());
+		if(root == nullptr)
+			return ResultEntry();
+		std::priority_queue<ResultEntry> k_best;
+		Primitive best_p;
+		std::priority_queue<SearchEntry> Q_min;
+		float sqrDistance = root->GetBounds().SqrDistance(q);
+		Q_min.push(SearchEntry(sqrDistance, root));
+		bool closest_primitive_found = false;
+
+		while (!closest_primitive_found){
+			SearchEntry searchEntry = Q_min.top();
+			Q_min.pop();
+			if (searchEntry.node->IsLeaf()){
+				auto leaf = (AABBLeafNode*) searchEntry.node;
+				auto pend = leaf->end();
+				for(auto pit = leaf->begin(); pit != pend; ++pit)
+				{
+					sqrDistance = pit->SqrDistance(q);
+					if(k_best.size() < k )
+					{
+						k_best.push(ResultEntry(sqrDistance,*pit));
+						continue;
+					}
+					if(k_best.top().SqrDistance > sqrDistance)
+					{
+						k_best.pop();
+						k_best.push(ResultEntry(sqrDistance,*pit));
+					}
+				}
+
+
+			} else{
+				auto node = (AABBSplitNode*)(searchEntry.node);
+				auto right = node->Right();
+				auto left = node->Left();
+				sqrDistance = right->GetBounds().SqrDistance(q);
+				Q_min.push(SearchEntry(sqrDistance, node->Right()));
+
+				sqrDistance = left->GetBounds().SqrDistance(q);
+				Q_min.push(SearchEntry(sqrDistance, node->Left()));
+
+			}
+			if (Q_min.top().sqrDistance > k_best.top().SqrDistance)
+				closest_primitive_found = true;
+		}
+		std::vector<ResultEntry> result(k_best.size());
+		auto rend = result.end();
+		for(auto rit = result.begin(); rit != rend; ++rit)
+		{
+			*rit = k_best.top();
+			k_best.pop();
+		}
+		return result;
 	}
 	
 	//returns the closest primitive and its squared distance to the point q

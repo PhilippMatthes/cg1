@@ -17,6 +17,9 @@ class GridTraverser
 	Eigen::Vector3i current;
 
 	/* you can additional attributes for incremental calculation here */
+	float tMaxX, tMaxY, tMaxZ;
+	float tDeltaX, tDeltaY, tDeltaZ;
+	float stepX, stepY, stepZ;
 
 public:
 	//default constructor
