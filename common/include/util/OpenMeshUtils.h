@@ -51,9 +51,9 @@ public:
     GLuint gBuffer;
     GLuint gPosition, gNormal, gAlbedo;
 
-    float MeshRenderer::lerp(float a, float b, float f);
+    //float MeshRenderer::lerp(float a, float b, float f);
 	void UpdateWithPerFaceColor(OpenMesh::FPropHandleT<Eigen::Vector4f> colorProperty);
-    void MeshRenderer::UpdateSSAOBuffers();
+    //void MeshRenderer::UpdateSSAOBuffers();
     std::vector<Eigen::Vector3f> ssaoKernel;
     GLuint noiseTexture;
 

@@ -5,6 +5,7 @@
 #include <iostream>
 #include "GridTraverser.h"
 #include "GridUtils.h"
+#include <limits>
 
 
 GridTraverser::GridTraverser()
@@ -69,13 +70,13 @@ void GridTraverser::Init()
     if (stepY < 0) nextVoxelBoundaryY += cellExtents(1);
     if (stepZ < 0) nextVoxelBoundaryZ += cellExtents(2);
 
-	tMaxX = dir(0) != 0.0 ? (nextVoxelBoundaryX - orig(0)) / dir(0) : FLT_MAX;
-	tMaxY = dir(1) != 0.0 ? (nextVoxelBoundaryY - orig(1)) / dir(1) : FLT_MAX;
-	tMaxZ = dir(2) != 0.0 ? (nextVoxelBoundaryZ - orig(2)) / dir(2) : FLT_MAX;
+	tMaxX = dir(0) != 0.0 ? (nextVoxelBoundaryX - orig(0)) / dir(0) : std::numeric_limits<float>::max();
+	tMaxY = dir(1) != 0.0 ? (nextVoxelBoundaryY - orig(1)) / dir(1) : std::numeric_limits<float>::max();
+	tMaxZ = dir(2) != 0.0 ? (nextVoxelBoundaryZ - orig(2)) / dir(2) : std::numeric_limits<float>::max();
 
-	tDeltaX = dir(0) != 0.0 ? cellExtents(0) / dir(0) * stepX : FLT_MAX;
-	tDeltaY = dir(1) != 0.0 ? cellExtents(1) / dir(1) * stepY : FLT_MAX;
-	tDeltaZ = dir(2) != 0.0 ? cellExtents(2) / dir(2) * stepZ : FLT_MAX;
+	tDeltaX = dir(0) != 0.0 ? cellExtents(0) / dir(0) * stepX : std::numeric_limits<float>::max();
+	tDeltaY = dir(1) != 0.0 ? cellExtents(1) / dir(1) * stepY : std::numeric_limits<float>::max();
+	tDeltaZ = dir(2) != 0.0 ? cellExtents(2) / dir(2) * stepZ : std::numeric_limits<float>::max();
 }
 
 void GridTraverser::operator++(int)
