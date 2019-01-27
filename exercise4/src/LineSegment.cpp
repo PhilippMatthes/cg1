@@ -97,9 +97,25 @@ Eigen::Vector3f LineSegment::ClosestPoint(const Eigen::Vector3f& p) const
 {
 	//the two endpoints of the line segment are v0,v1
 	/* Task 3.2.1 */
-	Eigen::Vector3f o = v0; 		//origin of the line
- 	Eigen::Vector3f d = (v1-v0);	//direction vector of the line		
-	return ((o-p)-(((o-p).dot(d)) * d));
+
+    Eigen::Vector3f o = v0; 		        //origin of the line
+    Eigen::Vector3f d = (v1-v0);	        //direction vector of the line
+    Eigen::Vector3f v0_p = (p-v0);          // direction of origin v0 to Point p
+    float magnitude = d.squaredNorm();      //Magnitude of direction vector vector
+	float distance = v0_p.dot(d) / magnitude;   //The normalized "distance" from origin v0 to your closest point
+
+    if (distance < 0)     //Check if P projection is over vectorAB
+    {
+        return v0;
+
+    }
+    else if (distance > 1){
+        return v1;
+    }
+    else
+    {
+        return v0 + d * distance;
+    }
 }
 
 //returns the squared distance between point p and the line segment

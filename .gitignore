@@ -5,5 +5,5 @@ cmake-build-release/*
 *.zip
 .vscode
 #Exclude DOXYGEN from loading, because it results in an error on Felix Notebook
-ext/
+ext/*
 ext/OpenMesh/cmake/ACGDoxygen.cmake
