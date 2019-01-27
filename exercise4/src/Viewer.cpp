@@ -57,7 +57,7 @@ void Viewer::SetupGUI()
 			else
 				MeshUpdated();
 		}
-	});	
+	});
 
 	cmbPrimitiveType = new nanogui::ComboBox(mainWindow, { "Use Vertices", "Use Edges", "Use Triangles" });
 	cmbPrimitiveType->setCallback([this](int) { FindClosestPoint(sldQuery->Value()); BuildGridVBO(); });
@@ -79,6 +79,17 @@ void Viewer::SetupGUI()
 	chkRenderGrid = new nanogui::CheckBox(mainWindow, "Render Non-Empty Grid Cells"); chkRenderGrid->setChecked(false);
 	chkRenderRay = new nanogui::CheckBox(mainWindow, "Render Ray"); chkRenderRay->setChecked(false);
 
+	nanogui::TextBox* txtKNearestNeighbours;
+	auto sldKNearestNeighbours = nse::gui::AddLabeledSlider(mainWindow, "Use K Nearest Neighbours", std::make_pair(1, 5), 2, txtKNearestNeighbours);
+	sldKNearestNeighbours->setCallback([this, txtKNearestNeighbours](float value)
+									   {
+										   kNeighbours = (unsigned int)std::round(value);
+										   txtKNearestNeighbours->setValue(std::to_string(kNeighbours));
+										   std::cout << "Set K to " << kNeighbours<< std::endl;
+									   });
+	sldKNearestNeighbours->callback()(sldKNearestNeighbours->value());
+
+
 	shadingBtn = new nanogui::ComboBox(mainWindow, { "Smooth Shading", "Flat Shading" });
 
 	performLayout();
@@ -89,19 +100,40 @@ void Viewer::FindClosestPoint(const Eigen::Vector3f& p)
 	if (polymesh.vertices_empty())
 		return;
 	Eigen::Vector3f closest;
-	auto timeStart = std::chrono::high_resolution_clock::now();
-	switch (cmbPrimitiveType->selectedIndex())
-	{
-	case Vertex:
-		closest = vertexTree.ClosestPoint(p);
-		break;
-	case Edge:
-		closest = edgeTree.ClosestPoint(p);
-		break;
-	case Tri:
-		closest = triangleTree.ClosestPoint(p);
-		break;
-	}	
+    std::vector<Eigen::Vector3f> closestK;
+    auto timeStart = std::chrono::high_resolution_clock::now();
+	std::cout << kNeighbours<< std::endl;
+	if (kNeighbours == 1){
+		switch (cmbPrimitiveType->selectedIndex())
+		{
+			case Vertex:
+				closest = vertexTree.ClosestPoint(p);
+				break;
+			case Edge:
+				closest = edgeTree.ClosestPoint(p);
+				break;
+			case Tri:
+				closest = triangleTree.ClosestPoint(p);
+				break;
+		}
+	} else{
+		switch (cmbPrimitiveType->selectedIndex())
+		{
+			case Vertex:
+                closestK = vertexTree.ClosestKPoints(p, kNeighbours);
+                closest = closestK[0];
+				break;
+			case Edge:
+                closestK = edgeTree.ClosestKPoints(p, kNeighbours);
+				closest = closestK[0];
+				break;
+			case Tri:
+                closestK = triangleTree.ClosestKPoints(p, kNeighbours);
+				closest = closestK[0];
+				break;
+		}
+	}
+
 	auto timeEnd = std::chrono::high_resolution_clock::now();
 	std::cout << std::fixed << "Closest point query took " << std::chrono::duration_cast<std::chrono::microseconds>(timeEnd - timeStart).count() << " microseconds." << std::endl;
 

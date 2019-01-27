@@ -62,9 +62,11 @@ private:
 	nanogui::CheckBox* chkRenderRay;
 	int raySteps;
 
+	int kNeighbours;
+
 	nse::gui::VectorInput* sldQuery, *sldRayOrigin, *sldRayDir;
 	nanogui::ComboBox* cmbPrimitiveType;
-	
+
 	HEMesh polymesh;
 	float bboxMaxLength;
 	MeshRenderer renderer;

@@ -3,7 +3,7 @@
 // Copyright (C) CGV TU Dresden - All Rights Reserved
 
 #pragma once
-
+#include <unistd.h>
 #include <queue>
 #include <utility>
 
@@ -388,9 +388,16 @@ public:
 	std::vector<ResultEntry> ClosestKPrimitives(size_t k,const Eigen::Vector3f& q) const
 	{
 		std::cout << "Using k nearest neighbours" << std::endl;
+		usleep(1000);
+		while(!IsCompleted()){
+			std::cout << "Waiting for Mesh to finish building" << std::endl;
+		}
 		assert(IsCompleted());
-		if(root == nullptr)
-			return ResultEntry();
+		if(root == nullptr){
+			std::vector<ResultEntry> result;
+			result.emplace_back(ResultEntry(0, nullptr));
+			return result;
+		}
 		std::priority_queue<ResultEntry> k_best;
 		Primitive best_p;
 		std::priority_queue<SearchEntry> Q_min;
@@ -409,13 +416,13 @@ public:
 					sqrDistance = pit->SqrDistance(q);
 					if(k_best.size() < k )
 					{
-						k_best.push(ResultEntry(sqrDistance,*pit));
+						k_best.push(ResultEntry(sqrDistance,&(*pit)));
 						continue;
 					}
-					if(k_best.top().SqrDistance > sqrDistance)
+					if(k_best.top().sqrDistance > sqrDistance)
 					{
 						k_best.pop();
-						k_best.push(ResultEntry(sqrDistance,*pit));
+						k_best.push(ResultEntry(sqrDistance,&(*pit)));
 					}
 				}
 
@@ -431,7 +438,7 @@ public:
 				Q_min.push(SearchEntry(sqrDistance, node->Left()));
 
 			}
-			if (Q_min.top().sqrDistance > k_best.top().SqrDistance)
+			if (Q_min.top().sqrDistance > k_best.top().sqrDistance)
 				closest_primitive_found = true;
 		}
 		std::vector<ResultEntry> result(k_best.size());
@@ -514,7 +521,18 @@ public:
 		ResultEntry r = ClosestPrimitive(p);
 		return  r.prim->ClosestPoint(p);
 	}
-	
+
+    //return the closest points position on the closest k  primitives in the tree with respect to the query point q
+    std::vector<Eigen::Vector3f> ClosestKPoints(const Eigen::Vector3f& p, size_t k) const
+    {
+        std::vector<ResultEntry> r = ClosestKPrimitives(k, p);
+        std::vector<Eigen::Vector3f> result;
+        for (int i = 0; i < k; ++i) {
+            result.emplace_back((r[k]).prim->ClosestPoint(p));
+        }
+        return result;
+    }
+
 	//return the squared distance between point p and the nearest primitive in the tree
 	float SqrDistance(const Eigen::Vector3f& p) const
 	{
