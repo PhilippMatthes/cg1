@@ -82,14 +82,9 @@ bool LineSegment::Overlaps(const Box& b) const
 	r = b.Radius(d4);
 	lb = u1.dot(d4);
 	ub = u2.dot(d4);
-		
-	if(!OverlapIntervals(-r,r,lb,ub))
-		return false;
 
+    return OverlapIntervals(-r, r, lb, ub);
 
-	return true;
-		
-				   
 }
 
 //returns the point with smallest distance topoint p which lies on the line segment

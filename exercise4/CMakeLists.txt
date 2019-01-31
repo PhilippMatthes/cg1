@@ -2,7 +2,7 @@ include_directories( ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/inc
 
 add_executable(Exercise4 MACOSX_BUNDLE
 	src/main.cpp
-	src/Viewer.cpp include/Viewer.h
+    src/Viewer.cpp include/Viewer.h
 	src/AABBTree.cpp include/AABBTree.h
 	src/Box.cpp include/Box.h
 	src/LineSegment.cpp include/LineSegment.h
@@ -10,7 +10,6 @@ add_executable(Exercise4 MACOSX_BUNDLE
 	src/Triangle.cpp include/Triangle.h
 	include/GridUtils.h
 	src/HashGrid.cpp include/HashGrid.h
-	src/GridTraverser.cpp include/GridTraverser.h
-	)
+	src/GridTraverser.cpp include/GridTraverser.h)
 
 target_link_libraries(Exercise4 CG1Common ${LIBS})

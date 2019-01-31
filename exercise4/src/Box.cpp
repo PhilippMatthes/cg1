@@ -96,10 +96,8 @@ bool Box:: Overlaps(const Box& b) const
 		return false;
 	if(!OverlapIntervals(lb1[1], ub1[1],lb2[1], ub2[1]))
 		return false;
-	if(!OverlapIntervals(lb1[2], ub1[2],lb2[2], ub2[2]))
-		return false;
-		
-	return true;
+	return OverlapIntervals(lb1[2], ub1[2], lb2[2], ub2[2]);
+
 }
 
 //returns true if the point p is inside this box
@@ -107,11 +105,9 @@ bool Box::IsInside(const Eigen::Vector3f& p) const
 {
 	const Eigen::Vector3f& lbound = LowerBound();
 	const Eigen::Vector3f& ubound = UpperBound();
-	if(p[0] < lbound[0] || p[0] > ubound[0] ||
-		p[1] < lbound[1] || p[1] > ubound[1] ||
-		p[2] < lbound[2] || p[2] > ubound[2])
-		return false;
-	return true;		
+	return !(p[0] < lbound[0] || p[0] > ubound[0] ||
+	p[1] < lbound[1] || p[1] > ubound[1] ||
+	p[2] < lbound[2] || p[2] > ubound[2]);
 }
 
 //returns  true if box b is inside this box
