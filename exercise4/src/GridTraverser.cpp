@@ -53,10 +53,13 @@ void GridTraverser::Init()
 	// https://www.scratchapixel.com/lessons/advanced-rendering/introduction-acceleration-structure/grid
 	// http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.42.3443&rep=rep1&type=pdf
 	// https://github.com/francisengelmann/fast_voxel_traversal/blob/master/main.cpp
-	dir.normalize();
+	//dir.normalize();
+	/*
 	std::cout << "Origin of grid traversal: " << orig << "\n";
 	std::cout << "Direction of grid traversal: " << dir << "\n";
 	std::cout << "Extents of grid traversal: " << cellExtents << "\n";
+    std::cout << "Current: " << current << "\n";
+    */
 
 	stepX = dir(0) < 0 ? -cellExtents(0) : cellExtents(0);
 	stepY = dir(1) < 0 ? -cellExtents(1) : cellExtents(1);
