@@ -438,8 +438,9 @@ public:
 				Q_min.push(SearchEntry(sqrDistance, node->Left()));
 
 			}
-			if (Q_min.top().sqrDistance > k_best.top().sqrDistance)
-				closest_primitive_found = true;
+            if (k_best.size() >= k
+                    && Q_min.top().sqrDistance > k_best.top().sqrDistance)
+                closest_primitive_found = true;
 		}
 		std::vector<ResultEntry> result(k_best.size());
 		auto rend = result.end();
@@ -527,8 +528,8 @@ public:
     {
         std::vector<ResultEntry> r = ClosestKPrimitives(k, p);
         std::vector<Eigen::Vector3f> result;
-        for (int i = 0; i < k; ++i) {
-            result.emplace_back((r[k]).prim->ClosestPoint(p));
+        for (int i = k-1; i >= 0; --i) {
+            result.emplace_back((r[i]).prim->ClosestPoint(p));
         }
         return result;
     }
